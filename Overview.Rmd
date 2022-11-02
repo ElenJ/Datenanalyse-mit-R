@@ -1,0 +1,60 @@
+---
+title: "Overview"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Course overview
+
+### Time slots
+
+8 x 1.5h:
+
+- Do 23.02. 
+    - 16:00 - 17:30 Uhr 
+- Fr 24.02. 
+    - 9:00 - 10:30 Uhr 
+    - 11:00 - 12:30 Uhr
+    - 14:00 - 15:30 Uhr
+    - 16:00 - 17:30 Uhr
+- Sa 25.02.
+    - 9:00 - 10:30 Uhr
+    - 11:00 - 12:30 Uhr
+    - 13:30 - 15:00 Uhr
+
+### Topics
+
+1. Stunde - R Grundlagen
+    1. Installation R + RStudio
+    2. R Grundlagen
+        1. Grundrechenarten
+        2. if, for
+        3. Funktionen
+        4. Error handling
+    3. Bibliotheken
+2. Stunde
+    1. Datensatz betrachten
+    2. Daten putzen
+    3. ggplot
+3. Stunde
+    1. Tests: Chi2, t-test
+    2. Regression: Lineare Modellierung
+    3. Feature selection: Korrelaton, Linearkombination, schrittweise Selektion, Boruta(?)
+4. Stunde
+    1. Klassifikation: Supervised Machine learning (Random Forest, kNN)
+    2. Machine learning Zyklus (train-test)
+5. Stunde
+    1. Unsupervised Machine learning (PCA)
+    2. Clustering (k-Means, HCA)
+6. Stunde
+    1. Shiny
+7. Stunde
+    1. Shiny
+8. Stunde
+    1. Shiny
+    2. Wie geht es weiter?
+
+

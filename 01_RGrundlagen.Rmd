@@ -1,0 +1,38 @@
+---
+title: "R Grundlagen"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. Installation
+
+### R
+
+**Ubuntu:**
+
+&nbsp;&nbsp;&nbsp;&nbsp;sudo apt update
+
+&nbsp;&nbsp;&nbsp;&nbsp;sudo apt -y upgrade
+
+&nbsp;&nbsp;&nbsp;&nbsp;sudo apt -y install r-base
+    
+**Windows/Mac:**
+
+&nbsp;&nbsp;&nbsp;&nbsp;Download from [cran](https://cran.r-project.org/).
+
+&nbsp;&nbsp;&nbsp;&nbsp;Windows: 
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download R for Windows --> base --> Download R-4.2.2 for Windows
+
+&nbsp;&nbsp;&nbsp;&nbsp;Mac: 
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download R for macOS
+
+### RStudio
+
+RStudio ist eine IDE (integrierte Entwicklungsumgebung), der de-facto Standard für die Entwicklung in R.
+
+

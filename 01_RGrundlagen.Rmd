@@ -33,6 +33,145 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### RStudio
 
-RStudio ist eine IDE (integrierte Entwicklungsumgebung), der de-facto Standard für die Entwicklung in R.
+RStudio ist eine IDE (integrierte Entwicklungsumgebung) und de-facto DER Standard für die Entwicklung in R. Es kann von der [Homepage](https://posit.co/download/rstudio-desktop/) heruntergeladen und der Anleitung entsprechend installiert werden.  
+
+## 2. R Grundlagen
+
+Warum sollte man Datenanalyse in R betreiben?
+
+R ist eine Skriptsprache, die sich neben Python, SAS und Matlab (Octave) hervorragend für die Datenanalyse eignet. Es wurden sehr sehr sehr viele Bibliotheken für R geschrieben, die alle möglichen Funktionen enthalten und mit denen sich so ziemlich alles machen lässt, was das Analystenherz begehrt. Statistiker lieben R [dazu gibt es keine verlässliche Referenz, das müssen Sie mir glauben] und, sobald sie eine neue statistische Methode entwickeln, schreiben sie meist ein R-Paket, das meist mehr oder weniger gut dokumentiert wird. 
+
+R hat eine Reihe von positiven Eigenschaften, die in **experimenteller** Umgebung von **Vorteil** sind:
+
+1. Open Source --> wichtig für Nachvollziehbarkeit
+
+2. Hervorragende Bibliotheken, um Daten in ein ordentliches Format zu bringen: dplyr, data.table, tidyr...
+
+3. Vielzahl an Bibliotheken. Es gibt für praktisch alles bereits eine Bibliothek: ~19.000 auf [CRAN](https://cran.r-project.org/), >2.000 auf [Bioconductor](https://www.bioconductor.org/), X auf Github.
+
+4. Publikationstaugliche Visualisierung mit ggplot, ggpubr, interaktive Visualsierung mit plotly.
+
+5. Einfache Erstellung von Reports und sogar Büchern mit RMarkdown.
+
+6. Einfache Erstellung von Web-Apps mit Shiny.
+
+7. Kann mit anderen Sprachen (z.B. Python, SQL, C++) kombiniert werden.
+
+8. Statistik first! Von Statistikern für Statistiker entwickelt.
+
+9. State-of-the-Art Analysen mit Machine Learning, Deep Learning...
+
+9. Sehr leicht zu erlernen.
+
+10. Sehr gut dokumentiert.
+
+11. Sehr hilfsbereite Community auf z.B. StackOverflow. Viele Antworten lassen sich ergoogeln.
+
+12. Plattformunabhängig. Läuft überall.
+
+**Nachteile:**
+
+1. Geschwindigkeit.
+
+2. Speicherbedarf.
+
+3. Unübersichtlichkeit der Bibliotheken.
+
+
+###    1. Grundrechenarten
+
+So sehen die grundlegenden Zuweisungen und Operationen in R aus:
+
+```{r}
+#Zuweisungen:
+meineVariable <- 2
+andereVariable = 5
+#elemantare Rechenoperationen
+meineVariable + andereVariable
+meineVariable / andereVariable
+meineVariable * andereVariable
+meineVariable ^ andereVariable
+andereVariable %% meineVariable #X mod Y (Rest nach Teilung)
+```
+
+###    2. Vektoren, Listen
+
+Einer der Vorteile von R ist die Verarbeitung von Vektoren. Dies macht sich v.a. bei der Anwendung von *apply-Funktionen bemerkbar (s. unten).
+
+In einen Vektor oder Liste können Sie alles hineinpacken, mit dem Untreschied, dass Listen mehrdimensional sind und die Typen beibehalten, während Vektoren Elemente desselben Datentyps (String, Integer) beinhalten.  
+
+```{r}
+myVector <- c(1, 2, "3")
+myVector
+```
+```{r}
+myList <- list(1, myVector, "3")
+myList
+```
+
+
+
+###    3. if, for
+
+Und so schreiben sie Zyklen und Anweisungen:
+```{r}
+if(meineVariable > 3) {
+  print("größer 3")
+} else if ((meineVariable + andereVariable) >=7) {
+  cat("Summe >= 7")
+} else {
+  stop("nichts davon")
+}
+```
+```{r}
+for (i in 1:5){
+  print(meineVariable)
+  meineVariable <- meineVariable+1
+}
+```
+
+und so können Sie Elemente löschen, um ihren Arbeitsplatz sauber zu halten:
+```{r}
+rm(meineVariable, andereVariable,i)
+```
+
+Und zu guter Letzt: die Hilfefunktion mittels "?":
+```{r}
+?read.table
+```
+
+Kommentare schreibt man mit vorangestelltem #
+
+###    4. Funktionen
+
+Sollten Sie doch eine eigene Funktion schreiben wollen, so geht es so:
+
+```{r}
+#Function for multiplying by 10 and subtracting 5
+multiply_10_subtr_5 <- function(x){
+  y <- x*10
+  message("Surprise!")
+  y <- y - 5
+  return(y)
+}
+```
+
+```{r}
+multiply_10_subtr_5(5)
+```
+
+Wenn Sie sich die Mühe gemacht haben und eine Reihe von eigenen Funktionen haben, könnte es sinnvoll sein, ein eigenes Paket zu erstellen. Das Thema geht über den Kurs hinaus, kann aber [hier](https://r-pkgs.org/) nachgelesen werden. Ein Style-Guide, der sich immer mehr zum Standard etabliert, ist [hier](https://style.tidyverse.org/) aufgeführt.
+
+###    5. Error handling
+
+Manchmal kann es hilfreich sein, eventuelle Fehler abzufangen. 
+
+```{r}
+# log eines Strings wird einen Fehler hervorrufen
+#log("text") 
+```
+
+    
+## 3. Bibliotheken
 
 

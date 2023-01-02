@@ -94,9 +94,11 @@ meineVariable ^ andereVariable
 andereVariable %% meineVariable #X mod Y (Rest nach Teilung)
 ```
 
-###    2. Vektoren, Listen
+Kommentare schreibt man mit vorangestelltem #
 
-Einer der Vorteile von R ist die Verarbeitung von Vektoren. Dies macht sich v.a. bei der Anwendung von *apply-Funktionen bemerkbar (s. unten).
+###    2. Gängige Datentypen: Vektoren, Listen, Matrix, Dataframe
+
+Einer der Vorteile von R ist die Verarbeitung von Vektoren. Dies macht sich v.a. bei der Anwendung von *apply-Funktionen bemerkbar (s. 2.4).
 
 In einen Vektor oder Liste können Sie alles hineinpacken, mit dem Untreschied, dass Listen mehrdimensional sind und die Typen beibehalten, während Vektoren Elemente desselben Datentyps (String, Integer) beinhalten.  
 
@@ -109,7 +111,16 @@ myList <- list(1, myVector, "3")
 myList
 ```
 
-
+Eine Matrix ist ein zweidimensionales Objekt aus mehreren gleichlangen Vektoren, die die Matrixspalten bilden.   
+```{r}
+mymatrix <- matrix(c(c(1:10), c(11:20), seq(100, 1000, 100)), nrow = 10, ncol = 3)
+mymatrix
+```
+Möchte man eine "Tabelle" mit verschiedenen Datentypen generieren, so braucht man ein Dataframe:
+```{r}
+myframe <- data.frame(colA = c(1:10), colB = seq(100, 1000, 100), colC = rep("a", 10))
+myframe
+```
 
 ###    3. if, for
 
@@ -130,21 +141,66 @@ for (i in 1:5){
 }
 ```
 
-und so können Sie Elemente löschen, um ihren Arbeitsplatz sauber zu halten:
+
+
+### 4. Apply-Familie
+
+R bietet einige Möglichkeiten der Parallelisierung an, die die Codeausführung verglichen mit for-Schleifen beschleunigen können. Eine Möglichkeit sind Funktionen der sogenannten apply-Familie (apply(), lapply(), sapply() und tapply()), die die Wiederholung vektorisiert ausführen. Ihr Unterschied beruht in der übergebenen sowie ausgegebenen Datenstruktur. 
+
+Der generelle Aufruf erfordert die Übergabe des Dataframes oder Matrix X, die Richtung (Margin=1 --> pro Zeile, Margin=2 --> pro Spalte) sowie die eigentliche Funktion FUN:
+
+apply(X, MARGIN, FUN)
+
+Beispiel:
 ```{r}
-rm(meineVariable, andereVariable,i)
+# Wir generieren eine Beispielmatrix:
+testmatrix <- matrix(c(1:10, 11:20, 21:30), nrow = 10, ncol = 3)
+testmatrix
 ```
 
-Und zu guter Letzt: die Hilfefunktion mittels "?":
+Den Mittelwert jeder Spalte kann man mit apply() berechnen. Die Ausgabe ist ein Vektor.
 ```{r}
-?read.table
+apply_result <- apply(testmatrix, 2, mean)
+is.vector(apply_result)
+apply_result
 ```
 
-Kommentare schreibt man mit vorangestelltem #
+Meist möchte man allerdings eigene Funktionen anwenden. Kürzere Funktionen kann man gleich innerhalb von apply() definieren, längere sollten "extern" definiert werden.
 
-###    4. Funktionen
+```{r}
+# apply mit kurzer eigener Funktion
+apply(testmatrix, 2, function(x) mean(x)**2)
+```
 
-Sollten Sie doch eine eigene Funktion schreiben wollen, so geht es so:
+```{r}
+# apply mit komplexerer "externer" Funktion
+myfunction <- function(x){
+  mymean <- mean(x)
+  div10 <- mymean/10
+  return(div10)
+}
+# Anwenden der Funktion auf die Spalten der Matrix:
+apply(testmatrix, 2, function(x) myfunction(x))
+```
+
+*l*apply() steht für "list-apply", die Ausgabe ist eine Liste:
+```{r}
+lapply(testmatrix[1:5, 1], function(x) x+2)
+```
+Oft ist es hilfreich, die Liste zu einem Vektor zu "unlisten":
+```{r}
+unlist(lapply(testmatrix[1:5, 1], function(x) x+2))
+```
+
+Alternativ kann man direkt sapply() benutzen, wenn man einen Vektor erhalten möchte:
+```{r}
+sapply(testmatrix[1:5, 1], function(x) x+2)
+```
+
+
+###    5. Funktionen
+
+Sollten Sie eine eigene Funktion schreiben wollen, so geht es so:
 
 ```{r}
 #Function for multiplying by 10 and subtracting 5
@@ -162,16 +218,94 @@ multiply_10_subtr_5(5)
 
 Wenn Sie sich die Mühe gemacht haben und eine Reihe von eigenen Funktionen haben, könnte es sinnvoll sein, ein eigenes Paket zu erstellen. Das Thema geht über den Kurs hinaus, kann aber [hier](https://r-pkgs.org/) nachgelesen werden. Ein Style-Guide, der sich immer mehr zum Standard etabliert, ist [hier](https://style.tidyverse.org/) aufgeführt.
 
-###    5. Error handling
+###    6. Error handling
 
-Manchmal kann es hilfreich sein, eventuelle Fehler abzufangen. 
+Manchmal kann es hilfreich sein, eventuelle Fehler abzufangen. Die Ausführung von log("text") wird mit dem Fehler 
+
+Fehler in log("text") : Nicht-numerisches Argument für mathematische Funktion
+
+quittert. Hat man eine z.B. eine Schleife über eine Liste gebaut, die aus verschiedenen Typen besteht und dadurch einen Fehler verursacht, würde die Ausführung der Schleife mit einer Fehlermeldung abbrechen, z.B. so: 
+
+erroneous_list <- list(1,2,"x",NA)
+
+for (ele in erroneous_list){
+
+  print(ele)
+  
+  print(log(ele))
+  
+}
+
+Wünscht man aber keinen Abbruch, sondern eine Fortführung der Schleife, so muss man den Fehler entsprechend abfangen:  
 
 ```{r}
-# log eines Strings wird einen Fehler hervorrufen
-#log("text") 
+# Definition der Liste
+erroneous_list <- list(1,2,"x",NA)
+# Ergebniskontainer
+results <- c()
+for (ele in erroneous_list){
+  res <- tryCatch(
+            {message("\nThis is the 'try' part")
+              out <- log(ele)
+            },
+            error=function(cond) {
+                message("\nHere's the original error message:")
+                message(cond)
+                # Rückgabewert bei Fehler
+                return(NA)
+            },
+            warning=function(cond) {
+                message("\nHere's the original warning message:")
+                message(cond)
+                #  Rückgabewert bei Warnung
+                return(NULL)
+            }
+        ) 
+  results <- c(results, res)
+}
+print(results)
 ```
 
+Und so können Sie Elemente löschen, um ihren Arbeitsplatz sauber zu halten:
+```{r}
+rm(meineVariable, andereVariable,i)
+```
+
+Und zu guter Letzt: die Hilfefunktion mittels "?":
+```{r}
+?read.table
+```
     
 ## 3. Bibliotheken
+
+R bietet den Vorteil eines (etwas unübersichtlich) reichhaltigen Bibliotheksangebots, sodass man selten etwas von Null auf programmieren muss. Es gibt eine Reihe von "Pflichtbibliotheken", die sich für die Datenanalyse als Standard durchgesetzt haben, z.B.:
+
++ dplyr für Datenmanipulation
++ ggplot2 für Grafiken
+
+Sollten Sie mehr Datenanalyse betreiben, so empfielt es sich, sich die Bibliotheken des *tidyverse*-Universums [hier](https://www.tidyverse.org/) anzueignen. Das geht allerdings weit über die Einführung hinaus. 
+
++ caret oder mlr für maschinelles Lernen
++ shiny für die Erstellung interaktiver Apps/Webseiten
+
+Um eine Bibliothek nutzen zu können, installiert man sie entweder von CRAN, bioconductor oder github entsprechend der Anleitung. CRAN-Bibliotheken lassen sich entweder über den Befehl
+```{r}
+install.packages("tidyverse") # tidyverse beinhaltet alle Pakete zur Datenmanipulation: dplyr, ggplot2 und einige andere hilfreiche Sachen
+```
+
+oder direkt in RStudio über Tools --> Install Packages.
+
+Die Installation ist nur einmal erforderlich. Möchte man das installierte Paket nutzen, muss man es noch aufrufen:
+```{r}
+library(tidyverse)
+```
+
+Damit stehen einem sämtliche Funktionen dieser Bibliothek zur Verfügung. Aus dem mitgeladenen magritte-Paket kommt der Pipe-Operator (%>%), der das Hintereinderschalten von Funktionen erleichtert bzw. lesbarer macht:
+```{r}
+testmatrix %>% 
+  as.data.frame(.) %>% # dplyr erfordert das Arbeiten mit Dataframes, weshalb die Matrix konvertiert werden muss
+  summarise(across(V1:V3, mean)) # errechnet mean pro Spalte
+```
+Lädt man mehrere Bibliotheken, kann es passieren, dass ein Funktionsname mehrfach vergeben wurde. Dies wird beim Laden der Bibliothek angezeigt: dplyr::filter() masks stats::filter(). Sollte man in diesem fall die filter()-Funktion des stats-Pakets benutzen wollen, so muss man beim Funktionsaufruf die jeweilige Bibliothek mit :: übergeben: stats::filter(). 
 
 

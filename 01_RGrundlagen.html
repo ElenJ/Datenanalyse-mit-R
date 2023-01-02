@@ -443,12 +443,13 @@ meineVariable + andereVariable</code></pre>
 <pre><code>## [1] 32</code></pre>
 <pre class="r"><code>andereVariable %% meineVariable #X mod Y (Rest nach Teilung)</code></pre>
 <pre><code>## [1] 1</code></pre>
+<p>Kommentare schreibt man mit vorangestelltem #</p>
 </div>
-<div id="vektoren-listen" class="section level3">
-<h3>2. Vektoren, Listen</h3>
+<div id="gängige-datentypen-vektoren-listen-matrix-dataframe" class="section level3">
+<h3>2. Gängige Datentypen: Vektoren, Listen, Matrix, Dataframe</h3>
 <p>Einer der Vorteile von R ist die Verarbeitung von Vektoren. Dies
 macht sich v.a. bei der Anwendung von *apply-Funktionen bemerkbar (s.
-unten).</p>
+2.4).</p>
 <p>In einen Vektor oder Liste können Sie alles hineinpacken, mit dem
 Untreschied, dass Listen mehrdimensional sind und die Typen beibehalten,
 während Vektoren Elemente desselben Datentyps (String, Integer)
@@ -466,6 +467,36 @@ myList</code></pre>
 ## 
 ## [[3]]
 ## [1] &quot;3&quot;</code></pre>
+<p>Eine Matrix ist ein zweidimensionales Objekt aus mehreren
+gleichlangen Vektoren, die die Matrixspalten bilden.</p>
+<pre class="r"><code>mymatrix &lt;- matrix(c(c(1:10), c(11:20), seq(100, 1000, 100)), nrow = 10, ncol = 3)
+mymatrix</code></pre>
+<pre><code>##       [,1] [,2] [,3]
+##  [1,]    1   11  100
+##  [2,]    2   12  200
+##  [3,]    3   13  300
+##  [4,]    4   14  400
+##  [5,]    5   15  500
+##  [6,]    6   16  600
+##  [7,]    7   17  700
+##  [8,]    8   18  800
+##  [9,]    9   19  900
+## [10,]   10   20 1000</code></pre>
+<p>Möchte man eine “Tabelle” mit verschiedenen Datentypen generieren, so
+braucht man ein Dataframe:</p>
+<pre class="r"><code>myframe &lt;- data.frame(colA = c(1:10), colB = seq(100, 1000, 100), colC = rep(&quot;a&quot;, 10))
+myframe</code></pre>
+<pre><code>##    colA colB colC
+## 1     1  100    a
+## 2     2  200    a
+## 3     3  300    a
+## 4     4  400    a
+## 5     5  500    a
+## 6     6  600    a
+## 7     7  700    a
+## 8     8  800    a
+## 9     9  900    a
+## 10   10 1000    a</code></pre>
 </div>
 <div id="if-for" class="section level3">
 <h3>3. if, for</h3>
@@ -487,17 +518,84 @@ myList</code></pre>
 ## [1] 4
 ## [1] 5
 ## [1] 6</code></pre>
-<p>und so können Sie Elemente löschen, um ihren Arbeitsplatz sauber zu
-halten:</p>
-<pre class="r"><code>rm(meineVariable, andereVariable,i)</code></pre>
-<p>Und zu guter Letzt: die Hilfefunktion mittels “?”:</p>
-<pre class="r"><code>?read.table</code></pre>
-<p>Kommentare schreibt man mit vorangestelltem #</p>
+</div>
+<div id="apply-familie" class="section level3">
+<h3>4. Apply-Familie</h3>
+<p>R bietet einige Möglichkeiten der Parallelisierung an, die die
+Codeausführung verglichen mit for-Schleifen beschleunigen können. Eine
+Möglichkeit sind Funktionen der sogenannten apply-Familie (apply(),
+lapply(), sapply() und tapply()), die die Wiederholung vektorisiert
+ausführen. Ihr Unterschied beruht in der übergebenen sowie ausgegebenen
+Datenstruktur.</p>
+<p>Der generelle Aufruf erfordert die Übergabe des Dataframes oder
+Matrix X, die Richtung (Margin=1 –&gt; pro Zeile, Margin=2 –&gt; pro
+Spalte) sowie die eigentliche Funktion FUN:</p>
+<p>apply(X, MARGIN, FUN)</p>
+<p>Beispiel:</p>
+<pre class="r"><code># Wir generieren eine Beispielmatrix:
+testmatrix &lt;- matrix(c(1:10, 11:20, 21:30), nrow = 10, ncol = 3)
+testmatrix</code></pre>
+<pre><code>##       [,1] [,2] [,3]
+##  [1,]    1   11   21
+##  [2,]    2   12   22
+##  [3,]    3   13   23
+##  [4,]    4   14   24
+##  [5,]    5   15   25
+##  [6,]    6   16   26
+##  [7,]    7   17   27
+##  [8,]    8   18   28
+##  [9,]    9   19   29
+## [10,]   10   20   30</code></pre>
+<p>Den Mittelwert jeder Spalte kann man mit apply() berechnen. Die
+Ausgabe ist ein Vektor.</p>
+<pre class="r"><code>apply_result &lt;- apply(testmatrix, 2, mean)
+is.vector(apply_result)</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<pre class="r"><code>apply_result</code></pre>
+<pre><code>## [1]  5.5 15.5 25.5</code></pre>
+<p>Meist möchte man allerdings eigene Funktionen anwenden. Kürzere
+Funktionen kann man gleich innerhalb von apply() definieren, längere
+sollten “extern” definiert werden.</p>
+<pre class="r"><code># apply mit kurzer eigener Funktion
+apply(testmatrix, 2, function(x) mean(x)**2)</code></pre>
+<pre><code>## [1]  30.25 240.25 650.25</code></pre>
+<pre class="r"><code># apply mit komplexerer &quot;externer&quot; Funktion
+myfunction &lt;- function(x){
+  mymean &lt;- mean(x)
+  div10 &lt;- mymean/10
+  return(div10)
+}
+# Anwenden der Funktion auf die Spalten der Matrix:
+apply(testmatrix, 2, function(x) myfunction(x))</code></pre>
+<pre><code>## [1] 0.55 1.55 2.55</code></pre>
+<p><em>l</em>apply() steht für “list-apply”, die Ausgabe ist eine
+Liste:</p>
+<pre class="r"><code>lapply(testmatrix[1:5, 1], function(x) x+2)</code></pre>
+<pre><code>## [[1]]
+## [1] 3
+## 
+## [[2]]
+## [1] 4
+## 
+## [[3]]
+## [1] 5
+## 
+## [[4]]
+## [1] 6
+## 
+## [[5]]
+## [1] 7</code></pre>
+<p>Oft ist es hilfreich, die Liste zu einem Vektor zu “unlisten”:</p>
+<pre class="r"><code>unlist(lapply(testmatrix[1:5, 1], function(x) x+2))</code></pre>
+<pre><code>## [1] 3 4 5 6 7</code></pre>
+<p>Alternativ kann man direkt sapply() benutzen, wenn man einen Vektor
+erhalten möchte:</p>
+<pre class="r"><code>sapply(testmatrix[1:5, 1], function(x) x+2)</code></pre>
+<pre><code>## [1] 3 4 5 6 7</code></pre>
 </div>
 <div id="funktionen" class="section level3">
-<h3>4. Funktionen</h3>
-<p>Sollten Sie doch eine eigene Funktion schreiben wollen, so geht es
-so:</p>
+<h3>5. Funktionen</h3>
+<p>Sollten Sie eine eigene Funktion schreiben wollen, so geht es so:</p>
 <pre class="r"><code>#Function for multiplying by 10 and subtracting 5
 multiply_10_subtr_5 &lt;- function(x){
   y &lt;- x*10
@@ -514,14 +612,122 @@ erstellen. Das Thema geht über den Kurs hinaus, kann aber <a href="https://r-pk
 der sich immer mehr zum Standard etabliert, ist <a href="https://style.tidyverse.org/">hier</a> aufgeführt.</p>
 </div>
 <div id="error-handling" class="section level3">
-<h3>5. Error handling</h3>
-<p>Manchmal kann es hilfreich sein, eventuelle Fehler abzufangen.</p>
-<pre class="r"><code># log eines Strings wird einen Fehler hervorrufen
-#log(&quot;text&quot;) </code></pre>
+<h3>6. Error handling</h3>
+<p>Manchmal kann es hilfreich sein, eventuelle Fehler abzufangen. Die
+Ausführung von log(“text”) wird mit dem Fehler</p>
+<p>Fehler in log(“text”) : Nicht-numerisches Argument für mathematische
+Funktion</p>
+<p>quittert. Hat man eine z.B. eine Schleife über eine Liste gebaut, die
+aus verschiedenen Typen besteht und dadurch einen Fehler verursacht,
+würde die Ausführung der Schleife mit einer Fehlermeldung abbrechen,
+z.B. so:</p>
+<p>erroneous_list &lt;- list(1,2,“x”,NA)</p>
+<p>for (ele in erroneous_list){</p>
+<p>print(ele)</p>
+<p>print(log(ele))</p>
+<p>}</p>
+<p>Wünscht man aber keinen Abbruch, sondern eine Fortführung der
+Schleife, so muss man den Fehler entsprechend abfangen:</p>
+<pre class="r"><code># Definition der Liste
+erroneous_list &lt;- list(1,2,&quot;x&quot;,NA)
+# Ergebniskontainer
+results &lt;- c()
+for (ele in erroneous_list){
+  res &lt;- tryCatch(
+            {message(&quot;\nThis is the &#39;try&#39; part&quot;)
+              out &lt;- log(ele)
+            },
+            error=function(cond) {
+                message(&quot;\nHere&#39;s the original error message:&quot;)
+                message(cond)
+                # Rückgabewert bei Fehler
+                return(NA)
+            },
+            warning=function(cond) {
+                message(&quot;\nHere&#39;s the original warning message:&quot;)
+                message(cond)
+                #  Rückgabewert bei Warnung
+                return(NULL)
+            }
+        ) 
+  results &lt;- c(results, res)
+}</code></pre>
+<pre><code>## 
+## This is the &#39;try&#39; part
+## 
+## This is the &#39;try&#39; part
+## 
+## This is the &#39;try&#39; part</code></pre>
+<pre><code>## 
+## Here&#39;s the original error message:</code></pre>
+<pre><code>## 
+## This is the &#39;try&#39; part</code></pre>
+<pre class="r"><code>print(results)</code></pre>
+<pre><code>## [1] 0.0000000 0.6931472        NA        NA</code></pre>
+<p>Und so können Sie Elemente löschen, um ihren Arbeitsplatz sauber zu
+halten:</p>
+<pre class="r"><code>rm(meineVariable, andereVariable,i)</code></pre>
+<p>Und zu guter Letzt: die Hilfefunktion mittels “?”:</p>
+<pre class="r"><code>?read.table</code></pre>
 </div>
 </div>
 <div id="bibliotheken" class="section level2">
 <h2>3. Bibliotheken</h2>
+<p>R bietet den Vorteil eines (etwas unübersichtlich) reichhaltigen
+Bibliotheksangebots, sodass man selten etwas von Null auf programmieren
+muss. Es gibt eine Reihe von “Pflichtbibliotheken”, die sich für die
+Datenanalyse als Standard durchgesetzt haben, z.B.:</p>
+<ul>
+<li>dplyr für Datenmanipulation</li>
+<li>ggplot2 für Grafiken</li>
+</ul>
+<p>Sollten Sie mehr Datenanalyse betreiben, so empfielt es sich, sich
+die Bibliotheken des <em>tidyverse</em>-Universums <a href="https://www.tidyverse.org/">hier</a> anzueignen. Das geht
+allerdings weit über die Einführung hinaus.</p>
+<ul>
+<li>caret oder mlr für maschinelles Lernen</li>
+<li>shiny für die Erstellung interaktiver Apps/Webseiten</li>
+</ul>
+<p>Um eine Bibliothek nutzen zu können, installiert man sie entweder von
+CRAN, bioconductor oder github entsprechend der Anleitung.
+CRAN-Bibliotheken lassen sich entweder über den Befehl</p>
+<pre class="r"><code>install.packages(&quot;tidyverse&quot;) # tidyverse beinhaltet alle Pakete zur Datenmanipulation: dplyr, ggplot2 und einige andere hilfreiche Sachen</code></pre>
+<pre><code>## Installiere Paket nach &#39;/home/elena/R/x86_64-pc-linux-gnu-library/4.2&#39;
+## (da &#39;lib&#39; nicht spezifiziert)</code></pre>
+<pre><code>## Warning: kann nicht auf den Index für das Repository https://cloud.r-project.org/src/contrib zugreifen:
+##   kann URL &#39;https://cloud.r-project.org/src/contrib/PACKAGES&#39; nicht öffnen</code></pre>
+<pre><code>## Warning: package &#39;tidyverse&#39; is not available for this version of R
+## 
+## A version of this package for your version of R might be available elsewhere,
+## see the ideas at
+## https://cran.r-project.org/doc/manuals/r-patched/R-admin.html#Installing-packages</code></pre>
+<p>oder direkt in RStudio über Tools –&gt; Install Packages.</p>
+<p>Die Installation ist nur einmal erforderlich. Möchte man das
+installierte Paket nutzen, muss man es noch aufrufen:</p>
+<pre class="r"><code>library(tidyverse)</code></pre>
+<pre><code>## ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.2 ──
+## ✔ ggplot2 3.3.6      ✔ purrr   0.3.4 
+## ✔ tibble  3.1.8      ✔ dplyr   1.0.10
+## ✔ tidyr   1.2.0      ✔ stringr 1.4.0 
+## ✔ readr   2.1.2      ✔ forcats 0.5.1 
+## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()</code></pre>
+<p>Damit stehen einem sämtliche Funktionen dieser Bibliothek zur
+Verfügung. Aus dem mitgeladenen magritte-Paket kommt der Pipe-Operator
+(%&gt;%), der das Hintereinderschalten von Funktionen erleichtert bzw.
+lesbarer macht:</p>
+<pre class="r"><code>testmatrix %&gt;% 
+  as.data.frame(.) %&gt;% # dplyr erfordert das Arbeiten mit Dataframes, weshalb die Matrix konvertiert werden muss
+  summarise(across(V1:V3, mean)) # errechnet mean pro Spalte</code></pre>
+<pre><code>##    V1   V2   V3
+## 1 5.5 15.5 25.5</code></pre>
+<p>Lädt man mehrere Bibliotheken, kann es passieren, dass ein
+Funktionsname mehrfach vergeben wurde. Dies wird beim Laden der
+Bibliothek angezeigt: dplyr::filter() masks stats::filter(). Sollte man
+in diesem fall die filter()-Funktion des stats-Pakets benutzen wollen,
+so muss man beim Funktionsaufruf die jeweilige Bibliothek mit ::
+übergeben: stats::filter().</p>
 </div>
 
 

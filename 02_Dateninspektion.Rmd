@@ -1,0 +1,56 @@
+---
+title: "Dateninspektion"
+output: html_notebook
+---
+
+# Dateninspektion
+
+```{r}
+#Installation des Pakets
+# install.packages("PASWR") # die Installatien muss man nur einmal machen
+#Laden der library:
+library(PASWR) #damit stehen Ihnen nun sämtliche Funktionen und Datensätze dieser Bibliothek zur Verfügung 
+library(tidyverse) #nützliches Packet zur Tabellenbearbeitung. Lädt ggplot2, eine sehr mächtige Graphikbibliothek 
+library(ggpubr) #eine Bibliothek für publikationsreife Graphen
+```
+
+## 1. Datensatz betrachten
+
+Meist beginnt die Datenanalyse damit, dass man irgendwoher Daten bekommt und je nach Fragestellung bestimmte Analysen durchführt. So stellt es sich die Data Scientist zumindest vor. In Wahrheit verbringt sie jedoch den Großteil ihrer Arbeitszeit damit, die Daten zusammenzutragen (z.B. durch Webscraping oder Datenbankabfragen) und sie zu putzen. Nur zu oft enthält der Datensatz fehlende oder unplausible Werte. Auch die Verteilung der Daten spielt eine große Rolle, welche statistischen Verfahren anwendbar sind. Eine Datenanalyse sollte man folglich niemals blind durchführen, sondern sich permanent vergewissern, dass man nicht in die Falle "garbage in - garbage out" fällt. 
+
+Das Erstellen des Datensatzes geht über den Einstiegskurs hinaus. Stattdessen bedienen wir uns im Kurs Datensätze, die mit der Installation von R zur Verfügung stehen oder im PASWR Paket enthalten sind. Diese kann man direkt aufrufen. Der Datensatz ist unter dem Namen "airquality" vorhanden. Der Befehlt head() zeigt die ersten 6 Zeilen des Dataframes.
+
+```{r}
+head(airquality)
+```
+
+Wir erkennen sofort, dass der Datensatz fehlende Werte enthält. Dies kann man systematisch überprüfen:
+
+```{r}
+summary(airquality)
+```
+
+Ein anderer Datensatz (zu Titanik) demonstriert ein weiteres Problem, nämlich Dubletten:
+```{r}
+head(titanic3)
+#Suche nach Dubletten
+titanic3 %>%
+  group_by(name) %>%
+  tally() %>%
+  arrange(desc(n))
+```
+Wir sehen, dass Kate Connolly und James Kelly zweimal geführt werden. Ob dies Namensvettern sind oder echte Duplikate und damit bearbeitet werden müssen, muss detailliert überprüft werden:
+
+```{r}
+titanic3 %>%
+  filter(name=="Connolly, Miss. Kate" | name=="Kelly, Mr. James")
+```
+Offenbar sind es echte Namensvettern und können bleiben. Allerdings wissen wir jetzt auch, dass wir in diesem Datensatz den Namen NICHT als unique identifier benutzen können und stattdessen den Passagieren eine andere ID vergeben müssten.
+
+## 2. Daten putzen
+
+### 2.1 Dubletten vorhanden?
+
+
+
+## 3. ggplot

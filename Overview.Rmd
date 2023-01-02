@@ -31,11 +31,13 @@ knitr::opts_chunk$set(echo = TRUE)
     1. Installation R + RStudio
     2. R Grundlagen
         1. Grundrechenarten
-        2. if, for
-        3. Funktionen
-        4. Error handling
+        2. Gängige Datentypen: Vektoren, Listen, Matrix, Dataframe
+        3. if, for
+        4. Apply-Familie
+        5. Funktionen
+        6. Error handling
     3. Bibliotheken
-2. Stunde
+2. Stunde - Dateninspektion
     1. Datensatz betrachten
     2. Daten putzen
     3. ggplot

@@ -1,6 +1,8 @@
 ---
 title: "Dateninspektion"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 # Dateninspektion
@@ -33,7 +35,16 @@ summary(airquality)
 Ein anderer Datensatz (zu Titanik) demonstriert ein weiteres Problem, nämlich Dubletten:
 ```{r}
 head(titanic3)
-#Suche nach Dubletten
+# der Datensatz hat ff Dimensionen
+dim(titanic3)
+# Wieviele Dubletten sind vorhanden?
+sum(duplicated(titanic3$name))
+# wievele verschiedene Werte gibt es? Entweder so:
+length(unique(titanic3$name))
+# oder so:
+titanic3 %>% distinct(name)
+
+# Suche nach Dubletten
 titanic3 %>%
   group_by(name) %>%
   tally() %>%
@@ -49,8 +60,103 @@ Offenbar sind es echte Namensvettern und können bleiben. Allerdings wissen wir 
 
 ## 2. Daten putzen
 
-### 2.1 Dubletten vorhanden?
+### 2.1 Dubletten entfernen
+
+Wenn wir auf Nummer sicher gehen wollen würden, würden wir dennoch die beiden duplizierten Passagiere entfernen:
+```{r}
+titanik_df <- titanic3[unique(titanic3$name), ]
+# prüfe, dass die Dimension sich geändert hat
+dim(titanik_df)
+```
+
+### 2.2 Missspezifikation des Datentyps
+
+Sowohl der Monat als auch der Tag im airquality Datensatz sind als Integer angegeben. Dies könnte später zu Problemen führen, z.B. bei der Darstellung. Deswegen benennen wir den Inhalt der Spalte um.
+```{r}
+# z.B mit case_when aus dplyr (das ist eine generelle Möglichkeit)
+airquality <- airquality %>%
+    mutate(
+    Monthname = case_when(
+          Month %in% 1 ~ "Jan",
+          Month %in% 2 ~ "Feb",
+          Month %in% 3 ~ "Mar",
+          Month %in% 4 ~ "Apr",
+          Month %in% 5 ~ "May",
+          Month %in% 6 ~ "Jun",
+          Month %in% 7 ~ "Jul",
+          Month %in% 8 ~ "Aug",
+          Month %in% 9 ~ "Sep",
+          Month %in% 10 ~ "Oct",
+          Month %in% 11 ~ "Nov",
+          Month %in% 12 ~ "Dec"
+    )
+  )
+
+# Bei Monatsnamen geht es aber einfacher:
+airquality$Monthname <- month.abb[airquality$Month]
+```
+
+### 2.3 Fehlende Werte
+
+Wir haben oben bereits gesehen, dass airquality einige fehlende Werte hat. Zur Erinnerung:
+```{r}
+sum(is.na(airquality))
+```
+(44 Werte sind NA)
+
+Es gibt verschiedene Ansätze, mit fehlenden Werten umzugehen. Zu unterscheiden sind Fälle, 1) wo fehlende Werte auf Probleme in der Datenerhebung deuten und 2) sog. „informed missingness“, wo die Abwesenheit eines Werts eine Aussage tragen könnte (z.B. fehlende Antworten bei Umfragen)
+Behebung von 1):
+
++ Löschen des Datensatzes
++ Globale Konstante („n.d“)
++ Lageparameter (Mittelwert, Median)
++ Wahrscheinlicher Wert
 
 
+
+Welche Methode ist wann zu wählen? Tipp: schauen Sie sich die Verteilung an.
+
+```{r}
+#Wieviele NA-Problemfälle gibt es?
+apply(airquality, 2,function(x) sum(is.na(x)))
+```
+
+Wir brauchen uns nur die Spalten Ozone und Solar.R genauer anzuschauen.
+```{r}
+hist(airquality$Ozone)
+```
+```{r}
+hist(airquality$Solar.R)
+```
+In beiden Fällen sind die Daten nicht normalverteilt. Folglich sind wir auf der sichereren Seite, wenn wir fehlende Werte durch den Median ersetzen:
+```{r}
+#Ersetze NA's
+airquality$Ozone[is.na(airquality$Ozone)] <- median(airquality$Ozone, na.rm=T)
+airquality$Solar.R[is.na(airquality$Solar.R)] <- median(airquality$Solar.R, na.rm=T)
+```
+
+Nebenbemerkung 1: es gibt sog. "informed missingness" Fälle, in denen die Abwesenheit der Daten nicht unbedingt für schlechte Datenqualität spricht, sondern eine Aussage trägt, z.B. wenn bei Umfragen bestimmte Fragen nicht beantwortet werden.
+
+Nebenbemerkung 2: es gibt inzwischen etwas fancigere Methoden, um NA's zu füllen, z.B. durch Extrapolation durch maschinelle Lernalgorithmen (s. z.B. randomForest::rfImpute()).
+
+Eine schöne Einführung samt weiterführenden Methoden ist z.B. bei Garcıa-Laencina et al., zu finden [Pattern classification with missing data: a review](https://www.semanticscholar.org/paper/Pattern-classification-with-missing-data%3A-a-review-Garc%C3%ADa-Laencina-Sancho-G%C3%B3mez/3f631c73b429fd2e59ab0b2a80a12a42d6fd00a8).
+
+```{r}
+#so sieht jetzt der Datensatz aus:
+str(airquality)
+summary(airquality)
+```
+
+### 2.x Ausreißer
+Ausreißer können ihre gesamte Analyse zunichte machen, weshalb Sie die Daten daraufhin unbedingt prüfen müssen.
+Strenggenommene Ausreißer: unter Q(1/4)−3/2 IQR oder über Q(3/4)+3/2 IQR
+Untersuchung von Datenpunkten, die auf ein Datenmodell große Wert ausübten: Cooks Distanz
+Ausreißerbehandlung: 
+
++ Kappen
++ Löschen
++ Imputieren
++ Binnen + Glätten
++ Glätten von Zeitreihen
 
 ## 3. ggplot

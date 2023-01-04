@@ -40,7 +40,7 @@ knitr::opts_chunk$set(echo = TRUE)
 2. Stunde - Dateninspektion
     1. Datensatz betrachten
     2. Daten putzen
-    3. ggplot
+    3. Daten plotten
 3. Stunde
     1. Tests: Chi2, t-test
     2. Regression: Lineare Modellierung

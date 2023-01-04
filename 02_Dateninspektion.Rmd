@@ -112,8 +112,6 @@ Behebung von 1):
 + Lageparameter (Mittelwert, Median)
 + Wahrscheinlicher Wert
 
-
-
 Welche Methode ist wann zu wählen? Tipp: schauen Sie sich die Verteilung an.
 
 ```{r}
@@ -147,11 +145,8 @@ str(airquality)
 summary(airquality)
 ```
 
-### 2.x Ausreißer
-Ausreißer können ihre gesamte Analyse zunichte machen, weshalb Sie die Daten daraufhin unbedingt prüfen müssen.
-Strenggenommene Ausreißer: unter Q(1/4)−3/2 IQR oder über Q(3/4)+3/2 IQR
-Untersuchung von Datenpunkten, die auf ein Datenmodell große Wert ausübten: Cooks Distanz
-Ausreißerbehandlung: 
+### 2.4 Ausreißer
+Ausreißer können ihre gesamte Analyse zunichte machen, weshalb Sie die Daten daraufhin unbedingt prüfen müssen. Eine Ausreisßerdefinition besagt, dass Ausreißer Punkte sind, die unter Q(1/4)−3/2 IQR oder über Q(3/4)+3/2 IQR liegen. Haben Sie solche Daten im Datensatz, können Sie die Ausreißer unterschiedlich behandeln: 
 
 + Kappen
 + Löschen
@@ -159,4 +154,88 @@ Ausreißerbehandlung:
 + Binnen + Glätten
 + Glätten von Zeitreihen
 
-## 3. ggplot
+Wir berechnen zunächst für eine Spalte, ob wir Ausreißerpunkte haben:
+```{r}
+quantile(airquality$Ozone)
+```
+Diese können wir uns rausgeben lassen:
+```{r}
+lower_bound <- quantile(airquality$Ozone)[2] - 3/2 * IQR(airquality$Ozone)
+upper_bound <- quantile(airquality$Ozone)[4] + 3/2 * IQR(airquality$Ozone)
+airquality$Ozone[which(airquality$Ozone < lower_bound | airquality$Ozone > upper_bound)]
+```
+
+Wir sollten nur noch bedenken, dass wir eine mögliche saisonale Komponente im Datensatz haben, weshalb es sinnvoll sein könnte, die Ausreißer pro Monat zu betrachten.
+
+```{r}
+for (mo in unique(airquality$Monthname)){
+  print(mo)
+  lower_bound <- quantile(airquality$Ozone[airquality$Monthname==mo])[2] - 3/2 * IQR(airquality$Ozone[airquality$Monthname==mo])
+  upper_bound <- quantile(airquality$Ozone[airquality$Monthname==mo])[4] + 3/2 * IQR(airquality$Ozone[airquality$Monthname==mo])
+  print(airquality$Ozone[airquality$Monthname==mo][which(airquality$Ozone[airquality$Monthname==mo] < lower_bound | airquality$Ozone[airquality$Monthname==mo] > upper_bound)])
+}
+```
+Diese ersetzen wir nun mit dem Mittelwert des jeweiligen Monats:
+```{r}
+for (mo in unique(airquality$Monthname)){
+  print(mo)
+  lower_bound <- quantile(airquality$Ozone[airquality$Monthname==mo])[2] - 3/2 * IQR(airquality$Ozone[airquality$Monthname==mo])
+  upper_bound <- quantile(airquality$Ozone[airquality$Monthname==mo])[4] + 3/2 * IQR(airquality$Ozone[airquality$Monthname==mo])
+  airquality$Ozone[airquality$Monthname==mo][which(airquality$Ozone[airquality$Monthname==mo] < lower_bound | airquality$Ozone[airquality$Monthname==mo] > upper_bound)] <- mean(airquality$Ozone[airquality$Monthname==mo])
+}
+```
+
+## 3. Daten plotten
+
+Viele der Schritte, die wir bisher unternommen haben, lassen sich durch entsprechende Grafiken vereinfachen bzw. verifizieren. Obwohl base R bereits Befehle für Grafiken enthält, hat sich mit der ggplot2 Bibliothek ein quasi-Standard etabliert. Eine Kurzanleitung finden sie [hier](https://www.maths.usyd.edu.au/u/UG/SM/STAT3022/r/current/Misc/data-visualization-2.1.pdf) (sollte der Link nicht funktionieren, suchen Sie nach ggplot cheat sheet)
+
+Dies ist ein Beispiel für ein Streudiagramm:
+```{r}
+plot <- ggplot(data = airquality, aes(x=Ozone, y=Solar.R)) +
+  geom_point() + 
+  ggtitle("Ozone vs. Solar.R")
+plot
+```
+Man kann auch mehrere Parameter gleichzeitig plotten, z.B. so:
+```{r}
+# install.packages("GGally")
+library(GGally)
+
+ggpairs(airquality,                 # Data frame
+        columns = 1:4,        # Auswahl der Spalten
+        aes(color = Monthname,  # Color nach Monat
+            alpha = 0.5))     # Transparenz 
+
+```
+Sehr hilfreich, insbesondere für die Bestimmung von Ausreißern, sind Boxplots:
+```{r}
+airquality %>%
+  select(c(1:4)) %>%
+  stack(.) %>%
+    ggplot(., aes(x = ind, y = values)) +
+      geom_boxplot()
+```
+Oder, etwas genauer, pro Monat:
+```{r}
+airquality %>%
+  select(Ozone, Solar.R, Wind, Temp, Monthname) %>%
+  pivot_longer(c(Ozone, Solar.R, Wind, Temp), names_to = "observation", values_to = "value") %>% # wir brauchen die Daten im long-Format
+    ggplot(., aes(x = observation, y = value)) + # definiere, was geplottet werden soll
+      geom_boxplot(aes(fill=Monthname)) + # definiere Plottyp
+      theme_bw() + # Aufhübschen des Plots
+      ggtitle("Übersicht über 'airquality'", subtitle = "Nach Bearbeitung von 'Ozone'")
+```
+Da es sich bei airquality um einen Datensatz mit einer zeitlichen Komponente handelt, können wir hier auch einen Time course plot zeichnen. Dafür brauchen wir eine Spalte mit Datumsangaben:
+```{r}
+airquality$date <- as.Date(paste0(airquality$Day, "-" ,airquality$Month), "%d-%m")
+```
+```{r}
+ggplot(airquality, aes(x = date, y = Ozone)) +
+  geom_line() +
+  theme_bw() + # Aufhübschen des Plots
+  ggtitle("Ozone im Zeitverlauf")
+```
+
+
+## Aufgaben
+

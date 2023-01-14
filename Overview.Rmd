@@ -41,14 +41,14 @@ knitr::opts_chunk$set(echo = TRUE)
     1. Datensatz betrachten
     2. Daten putzen
     3. Daten plotten
-3. Stunde
-    1. Tests: Chi2, t-test
+3. Stunde - Regression
+    1. Korrelation
     2. Regression: Lineare Modellierung
-    3. Feature selection: Korrelaton, Linearkombination, schrittweise Selektion, Boruta(?)
-4. Stunde
-    1. Klassifikation: Supervised Machine learning (Random Forest, kNN)
-    2. Machine learning Zyklus (train-test)
-5. Stunde
+4. Stunde - Klassifizierung
+    1. Tests: Chi2, t-test
+    2. Klassifikation: Supervised Machine learning (Random Forest, kNN)
+    3. Machine learning Zyklus (train-test)
+5. Stunde - Lernen ohne Vorwissen (unsupervised learning)
     1. Unsupervised Machine learning (PCA)
     2. Clustering (k-Means, HCA)
 6. Stunde

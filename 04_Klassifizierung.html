@@ -10,8 +10,9 @@
 
 
 
+<meta name="date" content="2023-01-16" />
 
-<title>Overview</title>
+<title>Klassifizierung</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -354,90 +355,206 @@ display: none;
 
 
 
-<h1 class="title toc-ignore">Overview</h1>
+<h1 class="title toc-ignore">Klassifizierung</h1>
+<h4 class="date">2023-01-16</h4>
 
 </div>
 
 
-<div id="course-overview" class="section level2">
-<h2>Course overview</h2>
-<div id="time-slots" class="section level3">
-<h3>Time slots</h3>
-<p>8 x 1.5h:</p>
+<pre class="r"><code>library(stringr)
+library(tidyverse)</code></pre>
+<div id="klassifizierung-und-gruppenvergleiche" class="section level1">
+<h1>Klassifizierung und Gruppenvergleiche</h1>
+<div id="klassifizierung" class="section level2">
+<h2>Klassifizierung</h2>
+<p>Eine häufige Fragestellung der Datenanalyse ist, einen neuen bisher
+nicht gesehen Datensatz einer bestimmten Klasse zuzuweisen, ihn damit zu
+klassifizieren. Wenn Sie jemals einen Naturführer benutzt haben, um eine
+Pflanze, einen Vogel oder ein Pilz zu bestimmen, haben sie versucht, den
+Organismus anhand bestimmter Eigenschaften, die sich meist aufs Aussehen
+beziehen, einer bestimmten Art zuzuweisen. In der Datenanalyse geschieht
+dies analog.</p>
+<p>Es gibt sehr viele verschiedene Ansätze, wie man etwas klassifizieren
+kann. Hier sind nur ein paar Beispiele für verschiedene Algorithmen, die
+verschiedene Ansätze verfolgen:</p>
 <ul>
-<li>Do 23.02.
+<li>Nach Ähnlichkeit
 <ul>
-<li>16:00 - 17:30 Uhr</li>
+<li>kNN</li>
 </ul></li>
-<li>Fr 24.02.
+<li>Nach Wahrscheinlichkeit
 <ul>
-<li>9:00 - 10:30 Uhr</li>
-<li>11:00 - 12:30 Uhr</li>
-<li>14:00 - 15:30 Uhr</li>
-<li>16:00 - 17:30 Uhr</li>
+<li>Logistische Regression</li>
+<li>Naive Bayes</li>
 </ul></li>
-<li>Sa 25.02.
+<li>Nach Entfernung
 <ul>
-<li>9:00 - 10:30 Uhr</li>
-<li>11:00 - 12:30 Uhr</li>
-<li>13:30 - 15:00 Uhr</li>
+<li>Discriminant analysis</li>
+<li>Support Vector Machine (SVM)</li>
+</ul></li>
+<li>Nach Regeln
+<ul>
+<li>Entscheidungsbäume</li>
+</ul></li>
+<li>Kombinationen
+<ul>
+<li>Bagging</li>
+<li>Boosting</li>
 </ul></li>
 </ul>
 </div>
-<div id="topics" class="section level3">
-<h3>Topics</h3>
-<ol style="list-style-type: decimal">
-<li>Stunde - R Grundlagen
-<ol style="list-style-type: decimal">
-<li>Installation R + RStudio</li>
-<li>R Grundlagen
-<ol style="list-style-type: decimal">
-<li>Grundrechenarten</li>
-<li>Gängige Datentypen: Vektoren, Listen, Matrix, Dataframe</li>
-<li>if, for</li>
-<li>Apply-Familie</li>
-<li>Funktionen</li>
-<li>Error handling</li>
-</ol></li>
-<li>Bibliotheken</li>
-</ol></li>
-<li>Stunde - Dateninspektion
-<ol style="list-style-type: decimal">
-<li>Datensatz betrachten</li>
-<li>Daten putzen</li>
-<li>Daten plotten</li>
-</ol></li>
-<li>Stunde - Regression
-<ol style="list-style-type: decimal">
-<li>Korrelation</li>
-<li>Regression: Lineare Modellierung</li>
-</ol></li>
-<li>Stunde - Gruppenvergleiche und Klassifizierung
-<ol style="list-style-type: decimal">
-<li>Gruppenvergleiche: Chi2, t-Test</li>
-<li>Klassifikation: Supervised Machine learning (Random Forest,
-kNN)</li>
-<li>Machine-learning Zyklus (train-test)</li>
-</ol></li>
-<li>Stunde - Lernen ohne Vorwissen (unsupervised learning)
-<ol style="list-style-type: decimal">
-<li>Unsupervised Machine learning (PCA)</li>
-<li>Clustering (k-Means, HCA)</li>
-</ol></li>
-<li>Stunde
-<ol style="list-style-type: decimal">
-<li>Shiny</li>
-</ol></li>
-<li>Stunde
-<ol style="list-style-type: decimal">
-<li>Shiny</li>
-</ol></li>
-<li>Stunde
-<ol style="list-style-type: decimal">
-<li>Shiny</li>
-<li>Wie geht es weiter?</li>
-</ol></li>
-</ol>
+<div id="beispiel" class="section level2">
+<h2>Beispiel</h2>
+<p>Wir betrachten als Beispiel den ‘adult’ datensatz, den Sie <a href="https://archive.ics.uci.edu/ml/machine-learning-databases/adult/">hier</a>
+herunterladen können. Uns interessiert vorrangig die adult.data Datei.
+Eine Beschreibung des Datesatzes finden sie in der adult.names-Datei.
+Zum Datensatz gehört noch die adult.test-Datei, mit der man den
+trainierten Algorithmus testen könnte. Wir machen zu
+Demonstrationszwecken eine eigene Aufsplittung in train/test.</p>
+<p>Laden Sie zunächst den adult.data sowie adult.test Datensatz. Im
+adult.test müssen sie noch vorher manuell die erste Zeile (|1x3 Cross
+validator) entfernen:</p>
+<pre class="r"><code>adult.data &lt;- read.table(&quot;data/adult.data&quot;, sep=&quot;,&quot;)
+adult.test &lt;- read.table(&quot;data/adult.test&quot;, sep=&quot;,&quot;)
+
+# Wir &quot;kleben&quot; die Daten zusammen, um einen größeren Datensatz zu haben: 
+adult &lt;- rbind(adult.data, adult.test)
+# die Einzeldateien brauchen wir nicht mehr
+rm(adult.data, adult.test)
+
+# Die Spaltennamen stammen aus der adult.names Datei
+colnms &lt;- c(&quot;age&quot;, 
+&quot;workclass&quot;, 
+&quot;fnlwgt&quot;,
+&quot;education&quot;,
+&quot;education-num&quot;,
+&quot;marital-status&quot;,
+&quot;occupation&quot;,
+&quot;relationship&quot;,
+&quot;race&quot;,
+&quot;sex&quot;,
+&quot;capital-gain&quot;,
+&quot;capital-loss&quot;,
+&quot;hours-per-week&quot;,
+&quot;native-country&quot;,
+&quot;class&quot;)
+
+# R reagiert allergisch auf &quot;-&quot; in Spaltennamen:
+colnms &lt;- make.names(colnms)
+
+# Schließlich weisen wir den Spalten die Namen zu und werfen einen Blick in die Daten:
+colnames(adult) &lt;- colnms
+rm(colnms)
+head(adult)</code></pre>
+<pre><code>##   age         workclass fnlwgt  education education.num      marital.status
+## 1  39         State-gov  77516  Bachelors            13       Never-married
+## 2  50  Self-emp-not-inc  83311  Bachelors            13  Married-civ-spouse
+## 3  38           Private 215646    HS-grad             9            Divorced
+## 4  53           Private 234721       11th             7  Married-civ-spouse
+## 5  28           Private 338409  Bachelors            13  Married-civ-spouse
+## 6  37           Private 284582    Masters            14  Married-civ-spouse
+##           occupation   relationship   race     sex capital.gain capital.loss
+## 1       Adm-clerical  Not-in-family  White    Male         2174            0
+## 2    Exec-managerial        Husband  White    Male            0            0
+## 3  Handlers-cleaners  Not-in-family  White    Male            0            0
+## 4  Handlers-cleaners        Husband  Black    Male            0            0
+## 5     Prof-specialty           Wife  Black  Female            0            0
+## 6    Exec-managerial           Wife  White  Female            0            0
+##   hours.per.week native.country  class
+## 1             40  United-States  &lt;=50K
+## 2             13  United-States  &lt;=50K
+## 3             40  United-States  &lt;=50K
+## 4             40  United-States  &lt;=50K
+## 5             40           Cuba  &lt;=50K
+## 6             40  United-States  &lt;=50K</code></pre>
+<p>Der Datensatz enthält jede Menge Leerzeichen sowie “?”, die wir
+zunächst ersetzen.</p>
+<pre class="r"><code>adult &lt;- data.frame(lapply(adult, function(x) {
+                  gsub(&quot;^[[:space:]]&quot;, &quot;&quot;, x)}))
+adult[adult == &quot;?&quot;] &lt;- NA
+adult$class &lt;- gsub(&quot;[[:punct:]]$&quot;,&quot;&quot;, adult$class)</code></pre>
+</div>
+<div id="aufgabe" class="section level2">
+<h2>Aufgabe</h2>
+<p>Machen Sie sich sonst mit dem Datensatz vertraut. Betreiben sie etwas
+explorative Datenanalyse, erstellen Sie ein paar Grafiken. Gibt es
+irgendwelche BEsonderheiten? Ausreißer?</p>
+</div>
+</div>
+<div id="gruppenvergleiche" class="section level1">
+<h1>Gruppenvergleiche</h1>
+<p>Eine häufige Frage, die Sie sich stellen, wenn sie Klassen mieinander
+vergleichen, ist, ob diese Klassen sich in irgendetwas voneinander
+unterscheiden. Gibt es z.B. irgendwelche Parameter, die zu den Klassen
+erhoben worden waren, kann man fragen, ob sich die Klassen in diesen
+Parametern unterschieden. Dabei spielt der Datentyp des erhobenen
+Parameters eine Rolle. Ist es ein kategorischer Typ (z.B. Augenfarbe),
+so ist das erste Werkzeug der Wahl ein Chi2 Test. Ist der Wert hingegen
+numerisch, ein t-Test.</p>
+<div id="chi2-test." class="section level2">
+<h2>Chi2-Test.</h2>
+<p>Der Chi-Quadrat-Test testet die Hypothe, ob es einen Zusammenhang
+zwischen zwei kategorischen Variablen gibt, bzw. ob die beobachtete
+Verteilung sich signifikant von der zufälligen unterscheidet. Im
+adult-Datensatz haben wir eine Reihe kategorischer Variablen. Wir können
+uns z.B. fragen, ob das Gehalt vom Geschlecht abhängig ist. Dazu führen
+wir den Test in R durch:</p>
+<pre class="r"><code>chi_res &lt;- chisq.test(x=adult$sex,y=adult$class)
+chi_res</code></pre>
+<pre><code>## 
+##  Pearson&#39;s Chi-squared test with Yates&#39; continuity correction
+## 
+## data:  adult$sex and adult$class
+## X-squared = 2248.8, df = 1, p-value &lt; 2.2e-16</code></pre>
+<p>Offenbar gibt es eine Abhängigkeit, da der p-Wert so klein ist. Wir
+verwerfen die Nullhypothese, dass es KEINE Abhängigkeit zwischen Gehalt
+und Geschlecht gibt.</p>
+<p>Wir können uns noch ansehen, wie die erwartete Verteilung wäre und
+wie groß die Diskrepanz ist:</p>
+<pre class="r"><code>wage_discrepancy &lt;- as.data.frame(cbind(chi_res$observed, chi_res$expected))
+colnames(wage_discrepancy) &lt;- c(paste0(&quot;observed &quot; , colnames(chi_res$observed)), 
+                                paste0(&quot;expected &quot; , colnames(chi_res$expected)))
+wage_discrepancy$disprop_over_50K &lt;- wage_discrepancy$`expected &gt;50K` / wage_discrepancy$`observed &gt;50K`
+wage_discrepancy</code></pre>
+<pre><code>##        observed &lt;=50K observed &gt;50K expected &lt;=50K expected &gt;50K
+## Female          14423          1769       12317.55       3874.45
+## Male            22732          9918       24837.45       7812.55
+##        disprop_over_50K
+## Female        2.1901924
+## Male          0.7877142</code></pre>
+</div>
+<div id="t-test" class="section level2">
+<h2>T-test</h2>
+<p>Ein t-Test kann verwendet werden, um zu bewerten, ob sich zwei
+Gruppen in den Mittelwerten eines gemessenen numerischen Parameters
+voneinander unterscheiden.</p>
+<p>Gibt es einen Zusammenhang zwischen Alter und Gehalt? Prüfen Sie
+zunächst, ob die zu untersuchende Variable normalverteilt ist. Das
+geschieht am besten durch Betrachtung der Grafiken (Histogramm,
+Dichteplot, QQ-Plot) oder/und dem Shapiro-Wilk Test.</p>
+<pre class="r"><code>adult$age &lt;- as.numeric(adult$age)
+hist(adult$age)</code></pre>
+<p><img src="data:image/png;base64,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yMCt/BenF6irHOIP99mWanVYQOfp66znra0qoGU2Xyag4RtcGdhXP6Dv9gi9C8UBLToQT/lPf7d98CDpfVtuEpQbym2vzLF5pFPpytOq/F+KOiGgKdTKN5GeKp1iLX+65H/lL+XmAz2t5Br7fZQb72+DWlY17tUSidKALh3Ycp3+uYlHvWmEqwtomc2HBzR8g5lXhhT2dbz339yf9LiqMOwXJrfcheKAFh+IGaVHSiasKbu98GOTub6koMfwZz3bCQKaQq19F/7lSUU/0wPz04qsHlvoRtYtheepA65o+Vt0L23v0nFXYEZ65xn32ccJLz7vfz2oudqAltl8mRPpQzeYySzZNb+6103FfxNprjsLfq+3w88DLT4Qq44tzp98/rW1bC/02GQyv9q05eab37S2/3tIEgKaQq0/jelvl0zZZZMefbfY64TbP3brViwYt0HnXoMuyV9cecfULdbr3H/TI370YdEm1tw5eWi3dbY+7z+ZsgHNrLxmj427bXSI98eVzjzc8171AQ3dfLmPcoZtMKv5viM26d53q3NezdzrrTwxf+3npm/Wq2nY5LszmR96qy8IHJ2SA3F94Ylst2nvr3V7Yccma/WdXx3Vt9uIXU/4bcjdREIRUETrR14kdq33XkRvxfVTR3cRGXnYVa3/i0ZpOTYdGAFFtPyPRx5R772Ix2T1EYRK0nRsOigCirb27EhPfkbgd/z3TFLyIZvKAU3vsemgCCja2jJ/Eqf+3l8uzryyk7fceUmddykmlQOa3mPTQRFQtLncHxvutN95cw7y53h3H5Xs8FrxEj61x6aDIqBoc5/uVnJSj0xeVe89Sg6OTcdCQNH2Vl3Uu5CI/t9bU/kW6cGx6VAIKKKw7Iape27Ws2ngmBPv4G9TKBybDoSAAoARAQUAIwIKAEYEFACMCCgAGBFQADAioABgREABwIiAAoARAQUAIwIKAEYEFACMCCgAGBFQADAioABgREABwIiAAoARAQUAIwIKAEYEFACMCCgAGBFQADAioABgREABwIiAAoARAQUAIwIKAEYEFACMCCgAGBFQADAioABgREABwIiAAoARAQUAIwIKAEYEFACMCCgAGBFQADAioABgREABwIiAAoARAQUAIwIKAEYEFACMCCgAGBFQADAioABgREABwIiAAoARAQUAIwIKAEYEFACMCCgAGBFQADAi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" width="672" /></p>
+<p>Die Kurve ist leicht rechtsschief verteilt. Damit wir sicher gehen,
+logarithmieren wir die Daten zunächst, bevor wir den T-test
+durchführen:</p>
+<pre class="r"><code>adult$age_log &lt;-  log(adult$age)
+t.test(age_log ~ class, data = adult, paired=F) # y ist numerisch und x eine binäre Variable</code></pre>
+<pre><code>## 
+##  Welch Two Sample t-test
+## 
+## data:  age_log by class
+## t = -76.313, df = 31005, p-value &lt; 2.2e-16
+## alternative hypothesis: true difference in means between group &lt;=50K and group &gt;50K is not equal to 0
+## 95 percent confidence interval:
+##  -0.2312723 -0.2196897
+## sample estimates:
+## mean in group &lt;=50K  mean in group &gt;50K 
+##            3.536539            3.762020</code></pre>
+<p>Aufgabe: machen Sie sich die Bedeutung der Beschreibung des t-test
+outputs klar. Wie verhält sich das Einkommen bezüglich der Klasse?</p>
+<pre><code>2. Klassifikation: Supervised Machine learning (Random Forest, kNN)
+3. Machine learning Zyklus (train-test)</code></pre>
 </div>
 </div>
 

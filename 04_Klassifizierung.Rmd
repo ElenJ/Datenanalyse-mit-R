@@ -1,0 +1,321 @@
+---
+title: "Klassifizierung"
+output: html_document
+date: "2023-01-16"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=F}
+library(stringr)
+library(tidyverse)
+library(caret)
+library(pROC)
+```
+
+# Gruppenvergleiche und Klassifizierung
+
+
+## Beispiel
+
+Wir betrachten als Beispiel den 'adult' datensatz, den Sie [hier](https://archive.ics.uci.edu/ml/machine-learning-databases/adult/) herunterladen können. Uns interessiert vorrangig die adult.data Datei. Eine Beschreibung des Datesatzes finden sie in der adult.names-Datei. Zum Datensatz gehört noch die adult.test-Datei, mit der man den trainierten Algorithmus testen könnte. Wir machen zu Demonstrationszwecken eine eigene Aufsplittung in train/test. 
+
+Laden Sie zunächst den adult.data sowie adult.test Datensatz. Im adult.test müssen sie noch vorher manuell die erste Zeile (|1x3 Cross validator) entfernen:
+```{r}
+adult.data <- read.table("data/adult.data", sep=",")
+adult.test <- read.table("data/adult.test", sep=",")
+
+# Wir "kleben" die Daten zusammen, um einen größeren Datensatz zu haben: 
+adult <- rbind(adult.data, adult.test)
+# die Einzeldateien brauchen wir nicht mehr
+rm(adult.data, adult.test)
+
+# Die Spaltennamen stammen aus der adult.names Datei
+colnms <- c("age", 
+"workclass", 
+"fnlwgt",
+"education",
+"education-num",
+"marital-status",
+"occupation",
+"relationship",
+"race",
+"sex",
+"capital-gain",
+"capital-loss",
+"hours-per-week",
+"native-country",
+"class")
+
+# R reagiert allergisch auf "-" in Spaltennamen:
+colnms <- make.names(colnms)
+
+# Schließlich weisen wir den Spalten die Namen zu und werfen einen Blick in die Daten:
+colnames(adult) <- colnms
+rm(colnms)
+head(adult)
+```
+Der Datensatz enthält jede Menge Leerzeichen sowie "?", die wir zunächst ersetzen. 
+
+```{r}
+adult <- data.frame(lapply(adult, function(x) {
+                  gsub("^[[:space:]]", "", x)}))
+adult[adult == "?"] <- NA
+adult$class <- gsub("[[:punct:]]$","", adult$class)
+```
+
+### Aufgabe
+Machen Sie sich sonst mit dem Datensatz vertraut. Betreiben sie etwas explorative Datenanalyse, erstellen Sie ein paar Grafiken. Gibt es irgendwelche Besonderheiten? Ausreißer?
+
+## Gruppenvergleiche
+
+Eine häufige Frage, die Sie sich stellen, wenn sie Klassen mieinander vergleichen, ist, ob diese Klassen sich in irgendetwas voneinander unterscheiden. Gibt es z.B. irgendwelche Parameter, die zu den Klassen erhoben worden waren, kann man fragen, ob sich die Klassen in diesen Parametern unterschieden. Dabei spielt der Datentyp des erhobenen Parameters eine Rolle. Ist es ein kategorischer Typ (z.B. Augenfarbe), so ist das erste Werkzeug der Wahl ein Chi2 Test. Ist der Wert hingegen numerisch, ein t-Test.
+
+### Chi2-Test
+
+Der Chi-Quadrat-Test testet die Hypothe, ob es einen Zusammenhang zwischen zwei kategorischen Variablen gibt, bzw. ob die beobachtete Verteilung sich signifikant von der zufälligen unterscheidet. Im adult-Datensatz haben wir eine Reihe kategorischer Variablen. Wir können uns z.B. fragen, ob das Gehalt vom Geschlecht abhängig ist. Dazu führen wir den Test in R durch:
+```{r}
+chi_res <- chisq.test(x=adult$sex,y=adult$class)
+chi_res
+```
+
+Offenbar gibt es eine Abhängigkeit, da der p-Wert so klein ist. Wir verwerfen die Nullhypothese, dass es KEINE Abhängigkeit zwischen Gehalt und Geschlecht gibt. 
+
+Wir können uns noch ansehen, wie die erwartete Verteilung wäre und wie groß die Diskrepanz ist:
+```{r}
+wage_discrepancy <- as.data.frame(cbind(chi_res$observed, chi_res$expected))
+colnames(wage_discrepancy) <- c(paste0("observed " , colnames(chi_res$observed)), 
+                                paste0("expected " , colnames(chi_res$expected)))
+wage_discrepancy$disprop_over_50K <- wage_discrepancy$`expected >50K` / wage_discrepancy$`observed >50K`
+wage_discrepancy
+```
+
+### T-test
+Ein t-Test kann verwendet werden, um zu bewerten, ob sich zwei Gruppen in den Mittelwerten eines gemessenen numerischen Parameters voneinander unterscheiden.
+
+Gibt es einen Zusammenhang zwischen Alter und Gehalt?
+Prüfen Sie zunächst, ob die zu untersuchende Variable normalverteilt ist. Das geschieht am besten durch Betrachtung der Grafiken (Histogramm, Dichteplot, QQ-Plot) oder/und dem Shapiro-Wilk Test.
+```{r}
+adult$age <- as.numeric(adult$age)
+hist(adult$age)
+```
+
+Die Kurve ist leicht rechtsschief verteilt. Damit wir sicher gehen, logarithmieren wir die Daten zunächst, bevor wir den T-test durchführen:
+```{r}
+adult$age_log <-  log(adult$age)
+t.test(age_log ~ class, data = adult, paired=F) # y ist numerisch und x eine binäre Variable
+```
+
+Aufgabe: machen Sie sich die Bedeutung der Beschreibung des t-test Outputs klar. Wie verhält sich das Einkommen bezüglich der Klasse? Führen Sie auch den t-Test mit nicht-logarithmiertem Alter durch. Was lässt sich feststellen?
+
+## Klassifizierung
+
+Eine häufige Fragestellung der Datenanalyse ist, einen neuen bisher nicht gesehen Datensatz einer bestimmten Klasse zuzuweisen, ihn damit zu klassifizieren. Wenn Sie jemals einen Naturführer benutzt haben, um eine Pflanze, einen Vogel oder ein Pilz zu bestimmen, haben sie versucht, den Organismus anhand bestimmter Eigenschaften, die sich meist aufs Aussehen beziehen, einer bestimmten Art zuzuweisen. In der Datenanalyse geschieht dies analog.
+
+Es gibt sehr viele verschiedene Ansätze, wie man etwas klassifizieren kann. Hier sind nur ein paar Beispiele für verschiedene Algorithmen, die verschiedene Ansätze verfolgen:
+
+- Nach Ähnlichkeit
+  - kNN
+- Nach Wahrscheinlichkeit
+  - Logistische Regression
+  - Naive Bayes
+- Nach Entfernung
+  - Discriminant analysis
+  - Support Vector Machine (SVM)
+- Nach Regeln
+  - Entscheidungsbäume
+- Kombinationen
+  - Bagging
+  - Boosting
+  
+Eine schöne Auflistung der Methoden finden Sie bei caret [hier](https://topepo.github.io/caret/models-clustered-by-tag-similarity.html) bzw. [hier](https://topepo.github.io/caret/available-models.html)
+All diese Ansätze haben geminsam, dass sie zum sogenannten "Supervised Machine learning" gehören. Dabei lernt der Algorithmus zunächst anhand von Beispielen mit bekannter (deswegen supervised) Klasse die zugrundeliegenden Regeln oder Verteilung und kann dann einen neuen Datenpunkt von unbekannter Klasse einer Klasse zuweisen.
+
+Wir probieren, den adult-Datensatz mittels Random Forest und Naive Bayes zu klassifizieren. 
+
+## Train-Test Zyklus
+
+Zunächst müssen wir den Datensatz "putzen": fehlende Werte bereinigen, Ausreißer klären, evtl. Features anpassen. Aus Zeitgründen (und weil wir den Luxus eines großen Datensatzes haben) wird dieser Schritt hier maximal abegkürzt, indem wir alle Zeilen mit fehlenden Werten verwerfen:
+```{r}
+mydf <- adult[complete.cases(adult),]
+
+# Und wir haben im Rahmen der Datenanalyse zumindest das Alter logarithmiert. Jetzt müssen wir uns für einen Wert entscheiden:
+
+mydf <- subset(mydf, select = -age)
+
+# R hat vorher die numerischen Spalten zu Characters angepasst, das machen wir rückgängig:
+numeric_cols <- c("fnlwgt", "education.num" ,"capital.gain",   "capital.loss", "hours.per.week", "age_log")
+for (n in numeric_cols){
+  cn <- which(colnames(mydf)==n)
+  mydf[,cn] <-  as.numeric(mydf[,cn])
+}
+```
+
+Desweiteren scheint die Spalte capital.gain und capital.loss als binärer Parameter aussagekräftiger zu sein:
+
+```{r}
+mydf$capital.gain <- ifelse(mydf$capital.gain > 0, 1, 0)
+mydf$capital.loss <- ifelse(mydf$capital.loss > 0, 1, 0)
+```
+
+
+Als nächstes müssen die kategorischen Werte hot-one kodiert werden, da viele Algorithmen mit kategorischen Parametern nicht arbeiten können:
+
+```{r}
+cat_col <- setdiff(colnames(mydf), c("class",numeric_cols ))
+dummy <- dummyVars(" ~ .", data=mydf[,cat_col], fullRank = TRUE)
+newdata <- data.frame(predict(dummy, newdata = mydf)) 
+mydf <- cbind(mydf[,c("class",numeric_cols )], newdata)
+```
+
+Vorsichtshalber benennen wir noch die Klassen um, da Sonderzeichen unnötig zu Problemen führen können:
+```{r}
+mydf$class <- ifelse(mydf$class ==">50K", "over50K","less50K")
+```
+
+Wir haben nun einen recht großen Datensatz:
+```{r}
+dim(mydf)
+```
+
+Wir können noch Parameter entfernen, die kaum Variabilität aufweisen und damit für die Vorhersage uninteressant sind:
+```{r}
+nzv <- nearZeroVar(mydf)
+df <- mydf[, -nzv]
+dim(df)
+```
+
+
+Jetzt müssen wir den Datensatz aufteilen: ein Teil wird benutzt, um den Algorithmus zu trainieren, der andere, um ihn anschließend zu testen. Zusätzlich kann man noch den Validation-Satz auslösen, wenn man Hyperparametertuning betreibt. Da man beim Tuning die Gefahr läuft, den Algorithmus zu "overfitten", braucht man schließlich einen Satz unabhängiger Daten, der die Performace des Modells ehrlicher schätzt, als der Validierungssatz. Oft bedient man sich hierbei eines Verhältnisses 65-25-10, man kann aber, abhängig von der tatsächlichen Datensatzgröße, das Verhältnis anpassen.
+
+Auch hierfür bietet caret eine Funktion an:
+*Anmerkung: Sie sollten mehrere Test/Trainingssätze generieren und die Modellqualität als Durchschnitt der Qualitäten der Modelle betrachten. Damit verhindern Sie, dass durch die zufällige Probenauswahl ihr Modell zu gut oder zu schlecht abschneidet.*
+```{r}
+# Extraktion des Testsatzes:
+fldsTest <- createDataPartition(df$class, times=1,  p = 0.9, list = TRUE)
+
+#Train/Test split
+train_validate <- df[ fldsTest[[1]], ]
+final_test <- df[ -fldsTest[[1]], ]
+ 
+#Train/Validation split 
+  
+testnumber = 3
+set.seed(1234)
+flds <- createDataPartition(train_validate$class, times=testnumber,  p = 0.75, list = TRUE) # generiert 3x einen Trainingssatz
+```
+
+Nun können wir den Algorithmus trainieren:
+
+### kNN
+```{r}
+#Funktion, um Modelleigenschaften zu extrahieren
+getModelQuality <- function(confMatrix){
+  data.frame(accuracy=confMatrix$overall["Accuracy"],
+             kappa=confMatrix$overall["Kappa"],
+             precision=confMatrix$byClass["Precision"],
+             sensitivity=confMatrix$byClass["Sensitivity"],
+             specificity=confMatrix$byClass["Specificity"],
+            F1=confMatrix$byClass["F1"])
+}
+
+#Festlegung von Trainierungsparametern
+control=trainControl(method="repeatedcv", number=10,repeats=3,classProbs = TRUE,summaryFunction = twoClassSummary)
+
+Modellqualitaet <- data.frame() #Kontainer für Ergebnisse
+
+for (i in 1:(length(flds))){ # Schleife über alle crossvalidation sets
+  print(i)
+  #Train/Test split
+  train_unscaled <- df[ flds[[i]], ]
+  test_unscaled <- df[ -flds[[i]], ]
+  #Normierung
+  preProcValues <- preProcess(train_unscaled, method = c("center", "scale"))
+  train <- predict(preProcValues, train_unscaled)
+  train$class <- as.factor(train$class )
+  test <- predict(preProcValues, test_unscaled)
+  test$class <- as.factor(test$class )
+  model_knn <- train(class~., data=train, method="knn", trControl=control)
+  print("post-model steps")
+  prediction <- predict(model_knn, newdata = test)
+  test$pred <- prediction
+  test$model <- "knn"
+  results_predict<-getModelQuality(confusionMatrix(data = test$pred, test$class, positive="over50K"))
+  results_predict$model <- "knn"
+  results_predict$test_number <- i
+  #ROC
+  print("post-model steps - ROC")
+  prediction_prob <- predict(model_knn, newdata = test,type="prob")
+  my_ROC <- roc(predictor=prediction_prob[,"over50K"], 
+           response=test$class,
+           levels=rev(levels(test$class)))
+  ROCAUC <- my_ROC$auc[1]
+  results_predict <- cbind(results_predict,ROCAUC)
+  #Confusion matrix
+  ConfMatrix <- confusionMatrix(data = prediction, test$class,  positive="over50K")
+  confMatrixTable_1 <- t(as.data.frame(c(ConfMatrix$table[1],ConfMatrix$table[2],ConfMatrix$table[3],ConfMatrix$table[4])))
+  colnames(confMatrixTable_1) <- c("No.No_pred","No.Yes_pred","Yes.No_pred","Yes.Yes_pred")
+  results_predict <- cbind(results_predict,confMatrixTable_1)   
+  #Abschließen der Schleife: Zusammenfügen der Ergebnisse
+  Modellqualitaet <- rbind(Modellqualitaet,results_predict)
+}
+Modellqualitaet
+```
+
+Wie würden Sie das Modell bewerten? Gibt es Optimierungsbedarf? Wenn ja, was könnte man machen? Wenn nein, warum?
+
+Berechnen Sie für jeden der Parameter einen Mittelwert samt Standardabweichung.
+```{r, echo=FALSE}
+Modellqualitaet_long <- Modellqualitaet %>% gather(key = parameter, value = measurement,
+       accuracy, precision, sensitivity, specificity,ROCAUC,F1, kappa,No.No_pred,No.Yes_pred,Yes.No_pred,Yes.Yes_pred)  %>%  group_by(model, parameter) %>% summarize(mean=mean(measurement, na.rm = T), sd= sd(measurement, na.rm=T))
+```
+
+### Aufgabe 
+Wiederholen Sie das Training mit Random Forest und vergleichen Sie die Ergebnisse. Welchen Algorithmus würden Sie wählen? Begründen Sie Ihre Entscheidung.
+
+### RF
+```{r}
+#for (i in 1:(length(flds))){
+for (i in 1:1){ # Schleife über alle crossvalidation sets
+  print(i)
+  #Train/Test split
+  train_unscaled <- df[ flds[[i]], ]
+  test_unscaled <- df[ -flds[[i]], ]
+  #Normierung
+  preProcValues <- preProcess(train_unscaled, method = c("center", "scale"))
+  train <- predict(preProcValues, train_unscaled)
+  train$class <- as.factor(train$class )
+  test <- predict(preProcValues, test_unscaled)
+  test$class <- as.factor(test$class )
+  model_rf <- train(class~., data=train, method="rf", trControl=control)
+  if(i==1){ # wir benötigen später für Shiny ein Modell
+     saveRDS(model_knn, paste0(getwd(),"/data/model_rf.rds"))
+  }
+  print("post-model steps")
+  prediction <- predict(model_rf, newdata = test)
+  test$pred <- prediction
+  test$model <- "rf"
+  results_predict<-getModelQuality(confusionMatrix(data = test$pred, test$class, positive="over50K"))
+  results_predict$model <- "rf"
+  results_predict$test_number <- i
+  #ROC
+  print("post-model steps - ROC")
+  prediction_prob <- predict(model_rf, newdata = test,type="prob")
+  my_ROC <- roc(predictor=prediction_prob[,"over50K"], 
+           response=test$class,
+           levels=rev(levels(test$class)))
+  ROCAUC <- my_ROC$auc[1]
+  results_predict <- cbind(results_predict,ROCAUC)
+  #Confusion matrix
+  ConfMatrix <- confusionMatrix(data = prediction, test$class,  positive="over50K")
+  confMatrixTable_1 <- t(as.data.frame(c(ConfMatrix$table[1],ConfMatrix$table[2],ConfMatrix$table[3],ConfMatrix$table[4])))
+  colnames(confMatrixTable_1) <- c("No.No_pred","No.Yes_pred","Yes.No_pred","Yes.Yes_pred")
+  results_predict <- cbind(results_predict,confMatrixTable_1)   
+  #Abschließen der Schleife: Zusammenfügen der Ergebnisse
+  Modellqualitaet <- rbind(Modellqualitaet,results_predict)
+}
+Modellqualitaet
+```
+

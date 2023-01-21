@@ -44,10 +44,10 @@ knitr::opts_chunk$set(echo = TRUE)
 3. Stunde - Regression
     1. Korrelation
     2. Regression: Lineare Modellierung
-4. Stunde - Klassifizierung
-    1. Tests: Chi2, t-test
+4. Stunde - Gruppenvergleiche und Klassifizierung
+    1. Gruppenvergleiche: Chi2, t-Test
     2. Klassifikation: Supervised Machine learning (Random Forest, kNN)
-    3. Machine learning Zyklus (train-test)
+    3. Machine-learning Zyklus (train-test)
 5. Stunde - Lernen ohne Vorwissen (unsupervised learning)
     1. Unsupervised Machine learning (PCA)
     2. Clustering (k-Means, HCA)

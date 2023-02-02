@@ -1,0 +1,91 @@
+---
+title: "Shiny 1"
+output: html_document
+date: "2023-02-02"
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Shiny Intro
+
+Shiny bietet eine R-Infrastruktur, die das Erstellen von html-Webseiten mit Frontend und Backend ohne notwendigerweise Detailkenntnisse von HTML/CSS/JavaScript zu haben. Sie können [hier](https://shiny.rstudio.com/gallery/) ein paar Anregungen finden. Die Möglichkeiten sind fast unbegrenzt und Sie können die gesamte Analysepower von R im Hintergrund nutzen. Eine sehr gute und detaillierte Anleitung finden Sie [hier](https://mastering-shiny.org/).
+
+## Statische html-App
+Wir bauen zunächst eine super-simple Anwendung. Dabei würde man eine Shiny-App nicht in RMarkdown entwickeln, weshalb Sie die Codesegmente am besten in eine neue Datei kopieren, die app.R heißen muss. Alternativ können Sie die UI und das Backend (server) in zwei Files aufteilen, die ui.R bzw server.R heißen:
+
+Code für "Hello world" App:
+```{r}
+#übertragen Sie den Code in das File app.R:
+library(shiny)
+ui <- fluidPage(
+  "Hello, my world!"
+)
+server <- function(input, output, session) {
+}
+shinyApp(ui, server)
+```
+
+Alternative mit zwei Files:
+```{r}
+# Code für ui.R:
+library(shiny)
+ui <- fluidPage(
+  "Hello, world!"
+)
+# Code für server.R
+library(shiny)
+server <- function(input, output, session) {
+}
+
+# shinyApp(ui, server)
+```
+
+Wenn Sie app.R bzw ui.R+server.R erstellt haben, werden Sie in RStudio einen grünen Pfeil "Run App" bemerken. Damit kann man die App starten. Wenn Sie "Run App" aufklappen, können Sie noch "run external" auswählen. Starten Sie die App jetzt, öffnet sich ihr Default-Browser, in dem die App läuft. Herzlichen Glückwunsch, Sie haben ihre Web-App gebaut, ohne eine Zeile html zu schreiben! 
+
+## App mit Nutzerinteraktion
+
+Allerdings hat die "Hello world" Seite noch keine PoweR und keine Interaktionsmöglichkeiten. Das holen wir jetzt nach. Wenn Sie sich jemals gefragt haben, welche Beispieldatensätze R in der Bibliothek "datasets" anbietet (ungeachtet all der Datensätze, die in Spezialpaketen geliefert werden), können Sie eine einfache Übersichtsapp dazu bauen: 
+```{r}
+#übertragen Sie den Code in das File app.R:
+ui <- fluidPage(
+  #hier will Shiny Input vom User
+  selectInput("dataset", label = "Dataset", choices = ls("package:datasets")),
+  #hier wird definiert, wo der im server.R (siehe dort output$summary, output$table) erzeugte Output erscheinen soll
+  verbatimTextOutput("summary"),
+  tableOutput("table"),
+  plotOutput("plot")
+)
+server <- function(input, output, session) {
+  # reactive: reagiert auf Änderungen des Inputs, hier: input$dataset
+  dataset <- reactive({
+    get(input$dataset, "package:datasets")
+  })
+
+  output$summary <- renderPrint({
+    # Use a reactive expression by calling it like a function
+    summary(dataset())
+  })
+
+  output$table <- renderTable({
+    dataset()
+  })
+  
+  output$plot <- renderPlot({
+      plot(dataset())
+  }, res = 96)
+}
+shinyApp(ui, server)
+```
+
+In der App können Sie im Drop-down Selektor einen Datensatz auswählen, worauf eine Übersicht über den Datensatz erstellt wird.
+
+**Aufgaben:** 
+
+1. vollziehen Sie nach, wie die Summary und die Datensatztabelle generiert wurden.
+
+2. Generieren Sie noch ein Summary-Element auf der Seite. Was müssen Sie beachten?
+
+## UI Elemente

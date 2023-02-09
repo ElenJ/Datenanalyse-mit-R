@@ -89,3 +89,110 @@ In der App können Sie im Drop-down Selektor einen Datensatz auswählen, worauf 
 2. Generieren Sie noch ein Summary-Element auf der Seite. Was müssen Sie beachten?
 
 ## UI Elemente
+
+Wir haben bisher eine sehr grundlegende Art der UI kennengelernt. Dies wollen wir jetzt mit ein paar weiteren Elementen aufpeppen. [hier](https://shiny.rstudio.com/gallery/widget-gallery.html) und [hier](https://shinyapps.dreamrs.fr/shinyWidgets/) können Sie sich Anregungen holen.
+
+**Aufgabe**: erstellen Sie mit dem ChickWeight Datensatz aus dem datasets-Paket eine etwas komplexere App, die dem Nutzer mehr Interaktionsmöglichkeiten bietet.
+
+Zur Info: grundsätzlich gibt es ff. Arten des Outputs:
++ **UI**                --> **server**            --> **Ergibt**
++ dataTableOutput	  --> renderDataTable   --> DataTable
++ htmlOutput	                            --> raw HTML
++ imageOutput	      --> renderImage       --> image
++ plotOutput	      --> renderPlot        --> plot
++ tableOutput	      --> renderTable       --> table
++ textOutput	      --> renderText        --> text
++ uiOutput	        --> renderUI          --> raw HTML
++ verbatimTextOutput    --> renderPrint   --> text
+
+```{r}
+library(shinyWidgets)
+library(ggplot2)
+ui <- fluidPage(
+  titlePanel("Chicken Diet"),
+  sidebarLayout(
+    sidebarPanel(
+    uiOutput("selectDiet")
+  , uiOutput("selectWeight")
+  , uiOutput("selectChick")
+  , verbatimTextOutput("range")
+    #hier will Shiny Input vom User
+
+  # selectInput("dataset", label = "Dataset", choices = ls("package:datasets")),
+  #hier wird definiert, wo der im server.R (siehe dort output$summary, output$table) erzeugte Output erscheinen soll
+  # verbatimTextOutput("summary"),
+    ),
+    mainPanel(
+      fluidRow(column(6, DT::dataTableOutput("table")),
+               column(6, plotOutput("plotDiet")))
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  #das ist unser Arbeitsdatensatz
+  df <- datasets::ChickWeight
+  
+  # dataset <- reactive({
+  #   get(input$dataset, "package:datasets")
+  # })
+  # 
+  # output$summary <- renderPrint({
+  #   # Use a reactive expression by calling it like a function
+  #   summary(dataset())
+  # })
+  
+  #Auswahl der Diät
+  output$selectDiet <- renderUI({
+    awesomeCheckboxGroup(
+   inputId = "Diet",
+   label = "Checkboxes", 
+    choices = unique(df$Diet),
+   selected = unique(df$Diet)[1],
+   inline = TRUE, 
+    status = "danger"
+)
+  })
+  
+  #Auswahl des Vogels
+  output$selectChick <- renderUI({
+      selectInput("chicken", label = "Chicken", choices = unique(df$Chick))
+  })
+  
+  #Auswahl des Gewichts
+  output$selectWeight <- renderUI({
+    sliderInput("sliderWeight", label = h3("Weight Range"), min = 0, 
+        max = max(df$weight), value = c(40, 60))
+  })
+
+  output$range <- renderPrint({ input$sliderWeight })
+  
+  #Definiere Tabellenoutput
+  output$table <- DT::renderDataTable({
+    df
+  },   options = list(paging = TRUE,    ## paginate the output
+                 pageLength = 5,  ## number of rows to output for each page
+                 scrollX = TRUE,   ## enable scrolling on X axis
+                 scrollY = TRUE,   ## enable scrolling on Y axis
+                 server = TRUE,   ## use client-side processing
+                 dom = 'Bfrtip',
+                 buttons = c('csv', 'excel')
+                 ),
+  extensions = 'Buttons',
+  selection = 'single', ## enable selection of a single row
+  filter = 'bottom',              ## include column filters at the bottom
+  rownames = FALSE                ## don't show row numbers/names
+  )
+  
+  output$plotDiet <- renderPlot({
+      ggplot(df, aes(x= Diet, y=weight)) + 
+      geom_boxplot() +
+      theme_classic() 
+  })
+}
+shinyApp(ui, server)
+```
+```{r}
+
+```
+

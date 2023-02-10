@@ -92,7 +92,8 @@ In der App können Sie im Drop-down Selektor einen Datensatz auswählen, worauf 
 
 Wir haben bisher eine sehr grundlegende Art der UI kennengelernt. Dies wollen wir jetzt mit ein paar weiteren Elementen aufpeppen. [hier](https://shiny.rstudio.com/gallery/widget-gallery.html) und [hier](https://shinyapps.dreamrs.fr/shinyWidgets/) können Sie sich Anregungen holen.
 
-**Aufgabe**: erstellen Sie mit dem ChickWeight Datensatz aus dem datasets-Paket eine etwas komplexere App, die dem Nutzer mehr Interaktionsmöglichkeiten bietet.
+**Aufgabe**: erstellen Sie mit dem ChickWeight Datensatz aus dem datasets-Paket eine etwas komplexere App, die dem Nutzer mehr Interaktionsmöglichkeiten bietet. Sie könnte z.B. so aussehen:
+![Beispiel für ihre Shiny-App](images/ChickenWeightApp.png)
 
 Zur Info: grundsätzlich gibt es ff. Arten des Outputs:
 + **UI**                --> **server**            --> **Ergibt**
@@ -106,8 +107,10 @@ Zur Info: grundsätzlich gibt es ff. Arten des Outputs:
 + verbatimTextOutput    --> renderPrint   --> text
 
 ```{r}
+library(shiny)
 library(shinyWidgets)
 library(ggplot2)
+library(dplyr)
 ui <- fluidPage(
   titlePanel("Chicken Diet"),
   sidebarLayout(
@@ -116,15 +119,12 @@ ui <- fluidPage(
   , uiOutput("selectWeight")
   , uiOutput("selectChick")
   , verbatimTextOutput("range")
-    #hier will Shiny Input vom User
-
-  # selectInput("dataset", label = "Dataset", choices = ls("package:datasets")),
-  #hier wird definiert, wo der im server.R (siehe dort output$summary, output$table) erzeugte Output erscheinen soll
-  # verbatimTextOutput("summary"),
     ),
     mainPanel(
       fluidRow(column(6, DT::dataTableOutput("table")),
                column(6, plotOutput("plotDiet")))
+      ,
+      fluidRow(plotOutput("plotChicken"))
     )
   )
 )
@@ -132,21 +132,12 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   #das ist unser Arbeitsdatensatz
   df <- datasets::ChickWeight
-  
-  # dataset <- reactive({
-  #   get(input$dataset, "package:datasets")
-  # })
-  # 
-  # output$summary <- renderPrint({
-  #   # Use a reactive expression by calling it like a function
-  #   summary(dataset())
-  # })
-  
+
   #Auswahl der Diät
   output$selectDiet <- renderUI({
     awesomeCheckboxGroup(
    inputId = "Diet",
-   label = "Checkboxes", 
+   label = "Diet type", 
     choices = unique(df$Diet),
    selected = unique(df$Diet)[1],
    inline = TRUE, 
@@ -156,7 +147,12 @@ server <- function(input, output, session) {
   
   #Auswahl des Vogels
   output$selectChick <- renderUI({
-      selectInput("chicken", label = "Chicken", choices = unique(df$Chick))
+    pickerInput(
+   inputId = "chicken",
+   label = "Chicken", 
+    choices = sort(unique(as.character(df$Chick))),
+   multiple = TRUE
+)
   })
   
   #Auswahl des Gewichts
@@ -165,11 +161,14 @@ server <- function(input, output, session) {
         max = max(df$weight), value = c(40, 60))
   })
 
+  #Output des gewählten Gewichts
   output$range <- renderPrint({ input$sliderWeight })
   
   #Definiere Tabellenoutput
   output$table <- DT::renderDataTable({
-    df
+    df %>% 
+      filter(weight > input$sliderWeight[1])  %>% 
+      filter(weight < input$sliderWeight[2])
   },   options = list(paging = TRUE,    ## paginate the output
                  pageLength = 5,  ## number of rows to output for each page
                  scrollX = TRUE,   ## enable scrolling on X axis
@@ -178,16 +177,34 @@ server <- function(input, output, session) {
                  dom = 'Bfrtip',
                  buttons = c('csv', 'excel')
                  ),
+    caption = htmltools::tags$caption(
+    style = 'caption-side: bottom; text-align: center;',
+    'Table 1: ', htmltools::em('This table is reactive to the weight range you set.')
+  ), 
   extensions = 'Buttons',
   selection = 'single', ## enable selection of a single row
   filter = 'bottom',              ## include column filters at the bottom
   rownames = FALSE                ## don't show row numbers/names
   )
   
+  # Definiere Boxplot fürs Gewicht
   output$plotDiet <- renderPlot({
       ggplot(df, aes(x= Diet, y=weight)) + 
       geom_boxplot() +
+      ggtitle("Weight by Diet") + 
       theme_classic() 
+  })
+  
+  # Definiere Gewichtzunahme in Zeit 
+  output$plotChicken <- renderPlot({
+    chickens <- input$chicken
+    if(is.null(chickens)){
+      chickens <- sort(unique(df$Chick))
+    } 
+  ggplot(df %>% filter(Diet %in% input$Diet) %>% filter(Chick %in% chickens), aes(x = Time, y = weight, color = Chick)) +
+    geom_line() +
+    ggtitle("Chicken Weight in Time") + 
+    theme_classic() 
   })
 }
 shinyApp(ui, server)

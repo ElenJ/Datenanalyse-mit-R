@@ -1,0 +1,307 @@
+---
+title: "Shiny 2"
+output: html_document
+date: "2023-02-11"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Shiny Continued
+
+## Reaktivität
+
+## Dashboards
+Zuvor haben wir mit dem ChickenWeight Datensatz eine recht einfache Shiny-App gebaut, die es erlaubt, den Datensatz entsprechend darzustellen. Der Nutzer kann durch entsprechende Filter bestimmte Aspekte herausgreifen und sich die Ergebnisse ansehen. Dies wollen wir nun weiterführen und eine App bauen, die auch Vorhersagen liefern kann. Außerdem werden wir diesmal ein etwas komplexeres, moderneres Dashboard nutzen.
+
+### Dashboards
+![Beispiel eines Shiny Dashboards](images/dashboard.png)
+Ein solches Dashboard lässt sich ganz einfach mittels dashboardPage() generieren. Dabei definiert man noch die Sidebar dashboardSidebar() und den Inhalt der Seite in dashboardBody():
+```{r}
+library(shinydashboard)
+library(shiny)
+
+ui <- dashboardPage(
+  dashboardHeader(title = "Basic dashboard"),
+  ## Sidebar content
+  dashboardSidebar(
+    sidebarMenu(
+      menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard")),
+      menuItem("Widgets", tabName = "widgets", icon = icon("th"))
+    )
+  ),
+  
+## Body content
+  dashboardBody(
+    tabItems(
+      # First tab content
+      tabItem(tabName = "dashboard",
+        fluidRow(
+          box(plotOutput("plot1", height = 250)),
+
+          box(
+            title = "Controls",
+            sliderInput("slider", "Number of observations:", 1, 100, 50)
+          )
+        )
+      ),
+
+      # Second tab content
+      tabItem(tabName = "widgets",
+        h2("Widgets tab content")
+      )
+    )
+  )
+)
+
+server <- function(input, output) {
+  set.seed(122)
+  histdata <- rnorm(500)
+
+  output$plot1 <- renderPlot({
+    data <- histdata[seq_len(input$slider)]
+    hist(data)
+  })
+}
+
+shinyApp(ui, server)
+```
+Jetzt werden wir das Modell, das wir mit dem Adult-Datensatz generiert haben, dafür benutzen, on-the-fly Vorhersagen für beliebige, vom Nutzer übergebene Daten vorherzusagen. 
+MAchen Sie sich zunächst Gedanken dazu, wie solch eine Seite aussehen könnte und was sie dem Nutzer darstellen sollte. Gehen Sie dann dazu über, das Dashboard nach und nach zu definieren. 
+Zunächst machen wir eine Seite mit einer kleinen Übersicht über den Datensatz.
+```{r}
+library(shinydashboard)
+library(shiny)
+library(ggplot2)
+library(shinyWidgets)
+
+#helper Functions
+retrieve_adult <- function(){
+    # Datensatz
+  adult.data <- read.table("data/adult.data", sep=",")
+  adult.test <- read.table("data/adult.test", sep=",")
+  adult <- rbind(adult.data, adult.test)
+  colnms <- c("age", 
+  "workclass", 
+  "fnlwgt",
+  "education",
+  "education-num",
+  "marital-status",
+  "occupation",
+  "relationship",
+  "race",
+  "sex",
+  "capital-gain",
+  "capital-loss",
+  "hours-per-week",
+  "native-country",
+  "class")
+  colnms <- make.names(colnms)
+  colnames(adult) <- colnms
+  adult <- data.frame(lapply(adult, function(x) {
+                    gsub("^[[:space:]]", "", x)}))
+  adult[adult == "?"] <- NA
+  adult$class <- gsub("[[:punct:]]$","", adult$class)
+  numeric_cols <- c("age", "fnlwgt", "education.num" ,"capital.gain",   "capital.loss", "hours.per.week", "age_log")
+  for (n in numeric_cols){
+    cn <- which(colnames(adult)==n)
+    adult[,cn] <-  as.numeric(adult[,cn])
+  }
+  return(adult)
+}
+ui <- dashboardPage(
+  dashboardHeader(title = "Adult dashboard"),
+  ## Sidebar content
+  dashboardSidebar(
+    sidebarMenu(
+      menuItem("Datensatz", tabName = "datensatz", icon = icon("dashboard")),
+      menuItem("Vorhersage", tabName = "vorhersage", icon = icon("th"))
+    )
+  ),
+  
+## Body content
+  dashboardBody(
+    tabItems(
+      # First tab content
+      tabItem(tabName = "datensatz",
+        fluidRow(
+          box(plotOutput("histogram", height = 250)),
+
+          box(
+            title = h3("Controls")
+            , uiOutput("selectColumn.ui")
+          )
+        )
+      ),
+
+      # Second tab content
+      tabItem(tabName = "vorhersage",
+        h2("Verdienstvorhersage")
+      )
+    )
+  )
+)
+
+server <- function(input, output) {
+  adult <- retrieve_adult()
+  #Auswahl des Spalte
+  output$selectColumn.ui <- renderUI({
+      numeric_cols <- c("age", "fnlwgt", "education.num" ,"capital.gain",   "capital.loss", "hours.per.week", "age_log")
+       selectInput("selectColumn", h3("Select parameter"), 
+             choices = numeric_cols, selected = numeric_cols[1])
+  })
+  output$histogram <- renderPlot({
+    if (is.null(input$selectColumn)) {
+        mycol = which(colnames(adult)=="age")
+    } else {
+        mycol = which(colnames(adult)==input$selectColumn)
+      }
+    ggplot(adult, aes(x= adult[,mycol])) +
+      geom_histogram() +
+      ggtitle(paste0("Histogram von ", input$selectColumn)) + 
+      theme_classic() 
+  })
+}
+
+shinyApp(ui, server)
+```
+Das Dashboard können Sie noch nach Beleben und Zeit ausschmücken. Wir machen jetzt die Seite für die Vorhersage.
+```{r}
+library(shinydashboard)
+library(shiny)
+library(ggplot2)
+library(shinyWidgets)
+library(caret)
+
+#helper Functions
+retrieve_adult <- function(){
+    # Datensatz
+  adult.data <- read.table("data/adult.data", sep=",")
+  adult.test <- read.table("data/adult.test", sep=",")
+  adult <- rbind(adult.data, adult.test)
+  colnms <- c("age", 
+  "workclass", 
+  "fnlwgt",
+  "education",
+  "education-num",
+  "marital-status",
+  "occupation",
+  "relationship",
+  "race",
+  "sex",
+  "capital-gain",
+  "capital-loss",
+  "hours-per-week",
+  "native-country",
+  "class")
+  colnms <- make.names(colnms)
+  colnames(adult) <- colnms
+  adult <- data.frame(lapply(adult, function(x) {
+                    gsub("^[[:space:]]", "", x)}))
+  adult[adult == "?"] <- NA
+  adult$class <- gsub("[[:punct:]]$","", adult$class)
+  numeric_cols <- c("age", "fnlwgt", "education.num" ,"capital.gain",   "capital.loss", "hours.per.week", "age_log")
+  for (n in numeric_cols){
+    cn <- which(colnames(adult)==n)
+    adult[,cn] <-  as.numeric(adult[,cn])
+  }
+  return(adult)
+}
+
+hot_one_adult <- function(mydf){
+  mydf$capital.gain <- ifelse(mydf$capital.gain > 0, 1, 0)
+  mydf$capital.loss <- ifelse(mydf$capital.loss > 0, 1, 0)
+  numeric_cols <- c("age", "fnlwgt", "education.num" ,"capital.gain",   "capital.loss", "hours.per.week")
+  cat_col <- setdiff(colnames(mydf), c("class",numeric_cols ))
+  dummy <- dummyVars(" ~ .", data=mydf[,cat_col], fullRank = TRUE)
+  newdata <- data.frame(predict(dummy, newdata = mydf)) 
+  mydf <- cbind(mydf[,c("class",numeric_cols )], newdata)
+  mydf$class <- ifelse(mydf$class ==">50K", "over50K","less50K")
+  mydf$age_log <- log(mydf$age)
+  nzv <- nearZeroVar(mydf)
+  df <- mydf[, -nzv]
+  return(df)
+}
+ui <- dashboardPage(
+  dashboardHeader(title = "Adult dashboard"),
+  ## Sidebar content
+  dashboardSidebar(
+    sidebarMenu(
+      menuItem("Datensatz", tabName = "datensatz", icon = icon("dashboard")),
+      menuItem("Vorhersage", tabName = "vorhersage", icon = icon("th"))
+    )
+  ),
+  
+## Body content
+  dashboardBody(
+    tabItems(
+      # First tab content
+      tabItem(tabName = "datensatz",
+        fluidRow(
+          box(plotOutput("histogram", height = 250)),
+
+          box(
+            title = h3("Controls")
+            , uiOutput("selectColumn.ui")
+          )
+        )
+      ),
+
+      # Second tab content
+      tabItem(tabName = "vorhersage"
+            ,  h2("Inputelemente")
+            , h2("Verdienstvorhersage")
+            , verbatimTextOutput("prediction")
+      )
+    )
+  )
+)
+
+server <- function(input, output) {
+  adult <- retrieve_adult()
+  #Auswahl des Spalte
+  output$selectColumn.ui <- renderUI({
+      numeric_cols <- c("age", "fnlwgt", "education.num" ,"capital.gain",   "capital.loss", "hours.per.week", "age_log")
+       selectInput("selectColumn", h3("Select parameter"), 
+             choices = numeric_cols, selected = numeric_cols[1])
+  })
+  output$histogram <- renderPlot({
+    if (is.null(input$selectColumn)) {
+        mycol = which(colnames(adult)=="age")
+    } else {
+        mycol = which(colnames(adult)==input$selectColumn)
+      }
+    ggplot(adult, aes(x= adult[,mycol])) +
+      geom_histogram() +
+      ggtitle(paste0("Histogram von ", input$selectColumn)) + 
+      theme_classic() 
+  })
+  
+  #Elemente für das Vorhersagetab
+  adult_ho <- hot_one_adult(adult)
+  preProcValues <- preProcess(adult_ho, method = c("center", "scale"))
+  model_knn <- readRDS(paste0(getwd(), "/data/model_knn.rds"))
+  
+  test_user <- adult_ho[1,]
+  test_user$fnlwgt <- as.numeric(test_user$fnlwgt)
+  test_user$education.num <- as.numeric(test_user$education.num)
+  test_user$hours.per.week <- as.numeric(test_user$hours.per.week)
+  # 
+
+  # # test_user <- data.frame("fnlwgt"=0,"education.num"=1, "capital.gain","hours.per.week",                   "age_log","workclassLocal.gov","workclassPrivate","workclassSelf.emp.not.inc","educationBachelors","educationHS.grad","educationMasters","educationSome.college","marital.statusMarried.civ.spouse","marital.statusNever.married","occupationCraft.repair","occupationExec.managerial","occupationMachine.op.inspct","occupationOther.service","occupationProf.specialty","occupationSales","occupationTransport.moving","relationshipNot.in.family","relationshipOwn.child","relationshipUnmarried",   "raceBlack", "raceWhite","sexMale","native.countryUnited.States" )
+  
+
+
+  
+  #Output des gewählten Gewichts
+  output$prediction <- renderPrint({ 
+    test <- predict(preProcValues, test_user)
+    prediction <- predict(model_knn, newdata = test)
+    prediction})
+}
+
+shinyApp(ui, server)
+```
+
+

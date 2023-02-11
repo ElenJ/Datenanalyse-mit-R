@@ -192,6 +192,7 @@ Jetzt müssen wir den Datensatz aufteilen: ein Teil wird benutzt, um den Algorit
 
 Auch hierfür bietet caret eine Funktion an:
 *Anmerkung: Sie sollten mehrere Test/Trainingssätze generieren und die Modellqualität als Durchschnitt der Qualitäten der Modelle betrachten. Damit verhindern Sie, dass durch die zufällige Probenauswahl ihr Modell zu gut oder zu schlecht abschneidet.*
+
 ```{r}
 # Extraktion des Testsatzes:
 fldsTest <- createDataPartition(df$class, times=1,  p = 0.9, list = TRUE)
@@ -238,6 +239,10 @@ for (i in 1:(length(flds))){ # Schleife über alle crossvalidation sets
   test <- predict(preProcValues, test_unscaled)
   test$class <- as.factor(test$class )
   model_knn <- train(class~., data=train, method="knn", trControl=control)
+  if(i==1){ # wir benötigen später für Shiny ein Modell
+     saveRDS(model_knn, paste0(getwd(),"/data/model_knn.rds"))
+  }
+  
   print("post-model steps")
   prediction <- predict(model_knn, newdata = test)
   test$pred <- prediction
@@ -291,7 +296,7 @@ for (i in 1:1){ # Schleife über alle crossvalidation sets
   test$class <- as.factor(test$class )
   model_rf <- train(class~., data=train, method="rf", trControl=control)
   if(i==1){ # wir benötigen später für Shiny ein Modell
-     saveRDS(model_knn, paste0(getwd(),"/data/model_rf.rds"))
+     saveRDS(model_rf, paste0(getwd(),"/data/model_rf.rds"))
   }
   print("post-model steps")
   prediction <- predict(model_rf, newdata = test)

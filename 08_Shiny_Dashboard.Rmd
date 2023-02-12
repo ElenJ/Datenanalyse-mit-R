@@ -1,22 +1,20 @@
 ---
-title: "Shiny 2"
+title: "Shiny 3"
 output: html_document
-date: "2023-02-11"
+date: "2023-02-12"
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Shiny Continued
+# App zur Verdienstvorhersage
 
-## Reaktivität
-
-## Dashboards
 Zuvor haben wir mit dem ChickenWeight Datensatz eine recht einfache Shiny-App gebaut, die es erlaubt, den Datensatz entsprechend darzustellen. Der Nutzer kann durch entsprechende Filter bestimmte Aspekte herausgreifen und sich die Ergebnisse ansehen. Dies wollen wir nun weiterführen und eine App bauen, die auch Vorhersagen liefern kann. Außerdem werden wir diesmal ein etwas komplexeres, moderneres Dashboard nutzen.
 
-### Dashboards
+## Dashboards
 ![Beispiel eines Shiny Dashboards](images/dashboard.png)
+
 Ein solches Dashboard lässt sich ganz einfach mittels dashboardPage() generieren. Dabei definiert man noch die Sidebar dashboardSidebar() und den Inhalt der Seite in dashboardBody():
 ```{r}
 library(shinydashboard)
@@ -176,29 +174,29 @@ library(caret)
 
 #helper Functions
 retrieve_adult <- function(){
-    # Datensatz
+  # Datensatz
   adult.data <- read.table("data/adult.data", sep=",")
   adult.test <- read.table("data/adult.test", sep=",")
   adult <- rbind(adult.data, adult.test)
   colnms <- c("age", 
-  "workclass", 
-  "fnlwgt",
-  "education",
-  "education-num",
-  "marital-status",
-  "occupation",
-  "relationship",
-  "race",
-  "sex",
-  "capital-gain",
-  "capital-loss",
-  "hours-per-week",
-  "native-country",
-  "class")
+              "workclass", 
+              "fnlwgt",
+              "education",
+              "education-num",
+              "marital-status",
+              "occupation",
+              "relationship",
+              "race",
+              "sex",
+              "capital-gain",
+              "capital-loss",
+              "hours-per-week",
+              "native-country",
+              "class")
   colnms <- make.names(colnms)
   colnames(adult) <- colnms
   adult <- data.frame(lapply(adult, function(x) {
-                    gsub("^[[:space:]]", "", x)}))
+    gsub("^[[:space:]]", "", x)}))
   adult[adult == "?"] <- NA
   adult$class <- gsub("[[:punct:]]$","", adult$class)
   numeric_cols <- c("age", "fnlwgt", "education.num" ,"capital.gain",   "capital.loss", "hours.per.week", "age_log")
@@ -233,26 +231,44 @@ ui <- dashboardPage(
     )
   ),
   
-## Body content
+  ## Body content
   dashboardBody(
     tabItems(
       # First tab content
       tabItem(tabName = "datensatz",
-        fluidRow(
-          box(plotOutput("histogram", height = 250)),
-
-          box(
-            title = h3("Controls")
-            , uiOutput("selectColumn.ui")
-          )
-        )
+              fluidRow(
+                box(plotOutput("histogram", height = 250)),
+                
+                box(
+                  title = h3("Controls")
+                  , uiOutput("selectColumn.ui")
+                )
+              )
       ),
-
+      
       # Second tab content
-      tabItem(tabName = "vorhersage"
-            ,  h2("Inputelemente")
-            , h2("Verdienstvorhersage")
-            , verbatimTextOutput("prediction")
+      tabItem(tabName = "vorhersage",
+              fluidRow(
+                column(6 
+                       , h2("Inputelemente")
+                       , sliderInput("age", "Your age", min = 18, max = 100, value = 25)
+                       , numericInput("workinghrs", "Working hours", value = 40)  
+                       , checkboxInput("sex", strong("Are you male?"), value = TRUE)
+                       , checkboxInput("race", strong("Are you white?"), value = TRUE)
+                       , checkboxInput("marital", strong("Are you merried?"), value = TRUE)
+                       , checkboxInput("children", strong("Do you have children?"), value = TRUE)
+                       , radioButtons("workclass", "Workclass",
+                                      choices = list("Government" = 1, "Private" = 2,"Self-employed" = 3),selected = 2)
+                       , radioButtons("education", "Workclass",
+                                      choices = list("Bachelors" = 1, "HS.grad" = 2,"Masters" = 3, "Some.college" = 4),selected = 1)
+                       , radioButtons("occupation", "Occupation",
+                                      choices = list("Craft.repair" = 1, "Exec.managerial" = 2,"Machine.op.inspct" = 3, "Other.service" = 4, "Prof.specialty" = 5, "Sales" = 6, "Transport.moving" = 7),selected = 6)
+                       , checkboxInput("us", strong("Are you US native?"), value = TRUE)),
+                column(6
+                       , h2("Verdienstvorhersage", style="color:red")
+                       , verbatimTextOutput("prediction"))
+              )
+              
       )
     )
   )
@@ -262,17 +278,17 @@ server <- function(input, output) {
   adult <- retrieve_adult()
   #Auswahl des Spalte
   output$selectColumn.ui <- renderUI({
-      numeric_cols <- c("age", "fnlwgt", "education.num" ,"capital.gain",   "capital.loss", "hours.per.week", "age_log")
-       selectInput("selectColumn", h3("Select parameter"), 
-             choices = numeric_cols, selected = numeric_cols[1])
+    numeric_cols <- c("age", "fnlwgt", "education.num" ,"capital.gain",   "capital.loss", "hours.per.week")
+    selectInput("selectColumn", h3("Select parameter"), 
+                choices = numeric_cols, selected = numeric_cols[1])
   })
   output$histogram <- renderPlot({
     if (is.null(input$selectColumn)) {
-        mycol = which(colnames(adult)=="age")
+      mycol = which(colnames(adult)=="age")
     } else {
-        mycol = which(colnames(adult)==input$selectColumn)
-      }
-    ggplot(adult, aes(x= adult[,mycol])) +
+      mycol = which(colnames(adult)==input$selectColumn)
+    }
+    ggplot(adult, aes(x= adult[,mycol], fill=class)) +
       geom_histogram() +
       ggtitle(paste0("Histogram von ", input$selectColumn)) + 
       theme_classic() 
@@ -283,25 +299,64 @@ server <- function(input, output) {
   preProcValues <- preProcess(adult_ho, method = c("center", "scale"))
   model_knn <- readRDS(paste0(getwd(), "/data/model_knn.rds"))
   
-  test_user <- adult_ho[1,]
-  test_user$fnlwgt <- as.numeric(test_user$fnlwgt)
-  test_user$education.num <- as.numeric(test_user$education.num)
-  test_user$hours.per.week <- as.numeric(test_user$hours.per.week)
-  # 
-
-  # # test_user <- data.frame("fnlwgt"=0,"education.num"=1, "capital.gain","hours.per.week",                   "age_log","workclassLocal.gov","workclassPrivate","workclassSelf.emp.not.inc","educationBachelors","educationHS.grad","educationMasters","educationSome.college","marital.statusMarried.civ.spouse","marital.statusNever.married","occupationCraft.repair","occupationExec.managerial","occupationMachine.op.inspct","occupationOther.service","occupationProf.specialty","occupationSales","occupationTransport.moving","relationshipNot.in.family","relationshipOwn.child","relationshipUnmarried",   "raceBlack", "raceWhite","sexMale","native.countryUnited.States" )
+  # Input des users
+  test_user_df <- reactive({
+    data.frame("fnlwgt"=median(adult_ho$fnlwgt, na.rm=T),
+               "education.num"=median(adult_ho$education.num, na.rm=T), 
+               "capital.gain"=0,#median(adult_ho$capital.gain, na.rm=T),
+               "hours.per.week"=input$workinghrs,                   
+               "age"=input$age,      
+               "workclassLocal.gov"=if (input$workclass == 1) 1 else 0,
+               "workclassPrivate"=if (input$workclass == 2) 1 else 0,
+               "workclassSelf.emp.not.inc"=if (input$workclass == 3) 1 else 0,
+               "educationBachelors"=if (input$education == 1) 1 else 0,
+               "educationHS.grad"=if (input$education == 2) 1 else 0,
+               "educationMasters"=if (input$education == 3) 1 else 0,
+               "educationSome.college"=if (input$education == 4) 1 else 0,
+               "marital.statusMarried.civ.spouse"=if (input$marital) 1 else 0,
+               "marital.statusNever.married"=if (input$marital) 0 else 1,
+               "occupationCraft.repair"=if (input$occupation == 1) 1 else 0,
+               "occupationExec.managerial"=if (input$occupation == 2) 1 else 0,
+               "occupationMachine.op.inspct"=if (input$occupation == 3) 1 else 0,
+               "occupationOther.service"=if (input$occupation == 4) 1 else 0,
+               "occupationProf.specialty"= if (input$occupation == 5) 1 else 0,
+               "occupationSales"= if (input$occupation == 6) 1 else 0,
+               "occupationTransport.moving"= if (input$occupation == 7) 1 else 0,
+               "relationshipNot.in.family"= if (input$marital) 0 else 1, 
+               "relationshipOwn.child"= if (input$children) 1 else 0,
+               "relationshipUnmarried"= if (input$marital) 1 else 0,                           
+               "raceBlack"= if (input$race) 0 else 1, 
+               "raceWhite"= if (input$race) 1 else 0,
+               "sexMale" = if (input$sex) 1 else 0,
+               "native.countryUnited.States" = if (input$us) 1 else 0)
+  })
   
-
-
   
-  #Output des gewählten Gewichts
+  #Output des gewählten Verdienstes
   output$prediction <- renderPrint({ 
+    test_user <- test_user_df()
+    test_user$age_log <- log(test_user$age)
     test <- predict(preProcValues, test_user)
     prediction <- predict(model_knn, newdata = test)
-    prediction})
+    res <- if(prediction == "less50K" ) "<50K" else ">50K" 
+    print(paste0("Ihr Verdienst ist ", res))
+  })
 }
 
 shinyApp(ui, server)
 ```
 
+## Wie geht es weiter?
 
+Die Welt der Datenanalyse ist umfangreich, komplex, aber sehr dankbar. Die meisten Aufgaben verlangen ihnen nicht nur ein mathematisches Grundverständnis und eine penible Datenprüfung ab, sondern auch viel Kreativität bezüglich des Analysevorgehens und der Darstellung Ihrer Ergebnisse. Irgendwo verbirgt sich die besagte Nadel im Heuhaufen.
+![Titelbild zu „Statistics done wrong“ von Alex Reinhart](images/statistics.png)
+Es gibt im Internet sehr viele gute Quellen, von denen man sich dem Thema nähern kann. Die folgende Liste soll nur ein kleiner Primer sein:
+
++ [Einführung in Statistik](https://www.openintro.org/book/os/)
++ [Statistische Methoden](http://www.biostathandbook.com/)
++ [Machine Learning](https://www.manning.com/books/machine-learning-with-r-the-tidyverse-and-mlr)
++ [ML mit Caret](https://topepo.github.io/caret/)
++ [ML Projekte](https://www.mlyearning.org/)
++ [Shiny](https://mastering-shiny.org/)
++ [Styling](https://style.tidyverse.org/)
++ [Pakettierung](https://r-pkgs.org/)

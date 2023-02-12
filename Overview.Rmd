@@ -52,11 +52,11 @@ knitr::opts_chunk$set(echo = TRUE)
     1. Unsupervised Machine learning (PCA)
     2. Clustering (k-Means, HCA)
 6. Stunde
-    1. Shiny
+    1. Shiny Einführung
 7. Stunde
-    1. Shiny
+    1. Shiny Reaktivität
 8. Stunde
-    1. Shiny
+    1. Shiny Advanced - App zur Verdienstvorhersage
     2. Wie geht es weiter?
 
 
